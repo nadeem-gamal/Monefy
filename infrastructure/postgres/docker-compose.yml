@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  postgres:
+    container_name: monefy-postgres
+    image: "postgres:alpine3.18"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${MONEFY_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${MONEFY_POSTGRES_PASSWORD}
+      POSTGRES_DB: test_db
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
