@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Account</title>
+    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,300italic,400italic,700italic|Source+Code+Pro:300,400,700' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="../assets/css/bootstrap.css">
+<link rel="stylesheet" href="../assets/css/jquery.bonsai.css">
+<link rel="stylesheet" href="../assets/css/main.css">
+<link rel="stylesheet" href="../assets/icon-font/icons.css">
+<script type="text/javascript" src="../assets/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="../assets/js/bootstrap.js"></script>
+<script type="text/javascript" src="../assets/js/jquery.bonsai.js"></script>
+
+  </head>
+  <body>
+    <div>
+
+      <!-- Name Title -->
+
+      <h1>Account</h1>
+
+      <!-- Type and Stereotype -->
+
+      <section style="margin-top: .5em;">
+        <span class="alert alert-info">
+          <span class="node-icon staruml-icon icon-ERDEntity"></span>
+          ERDEntity
+        </span>
+        
+      </section>
+
+      <!-- Path -->
+
+      <section style="margin-top: 10px">
+        
+        
+        
+          
+          <span class="label label-info"><a href='cf9c8b720f3815adeccaf3ef6e48c6c4.html'><span class='node-icon staruml-icon icon-Project'></span>Monefy</a></span>
+        
+          <span>::</span>
+          <span class="label label-info"><a href='4697d57f8a6ebc99cb8b1ee6fee45f04.html'><span class='node-icon staruml-icon icon-ERDDataModel'></span>Data Model</a></span>
+        
+          <span>::</span>
+          <span class="label label-info"><a href='dbd63c876304527a717fbc8757008e7f.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>Account</a></span>
+        
+      </section>
+
+      <!-- Diagram -->
+
+      
+
+      <!-- Description -->
+
+      
+      <section>
+        <h3>Description</h3>
+        <div>
+          
+            <span class="label label-info">none</span>
+          
+        </div>
+      </section>
+      
+
+      <!-- Specification -->
+
+      
+
+      <!-- Directed Relationship -->
+
+      
+
+      <!-- Undirected Relationship -->
+
+      
+
+      <!-- Classifier -->
+
+      
+
+      <!-- Interface -->
+
+      
+
+      <!-- Component -->
+
+      
+
+      <!-- Node -->
+
+      
+
+      <!-- Actor -->
+
+      
+
+      <!-- Use Case -->
+
+      
+
+      <!-- Template Parameters -->
+
+      
+
+      <!-- Literals -->
+
+      
+
+      <!-- Attributes -->
+
+      
+
+      <!-- Operations -->
+
+      
+
+      <!-- Receptions -->
+
+      
+
+      <!-- Extension Points -->
+
+      
+
+      <!-- Parameters -->
+
+      
+
+      <!-- Diagrams -->
+
+      
+      
+
+      <!-- Behavior -->
+
+      
+
+      <!-- Action -->
+
+      
+
+      <!-- Interaction -->
+
+      
+
+      <!-- CombinedFragment -->
+
+      
+
+      <!-- Activity -->
+
+      
+
+      <!-- State Machine -->
+
+      
+
+      <!-- State Machine -->
+
+      
+
+      <!-- State -->
+
+      
+
+      <!-- Vertex -->
+
+      
+
+      <!-- Transition -->
+
+      
+
+      <!-- Data Model (ERD) -->
+
+      
+
+      <!-- Columns (ERD) -->
+
+      
+      <section>
+        <h3>Columns</h3>
+        
+        <table class="table table-striped table-bordered">
+          <tr>
+            <th width="20%">Name</th>
+            <th width="20%">Type</th>
+            <th width="10%">Primary Key</th>
+            <th width="10%">Foreign Key</th>
+            <th width="20%">Reference To</th>
+            <th width="10%">Nullable</th>
+            <th width="10%">Unique</th>
+          </tr>
+          
+          <tr>
+            <td><a href="dee2b30af6a986b17c9240348e990a74.html">id</a></td>
+            <td>INTEGER(10)</td>
+            <td><span class='label label-info'>true</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>true</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="54eb87790d9a1e5caec2d66490d89066.html">name</a></td>
+            <td>VARCHAR(255)</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="a791a96002483a3e7014f47779e53a34.html">currency</a></td>
+            <td>INTEGER(10)</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>true</span></td>
+            <td>
+              
+                <a href='73a2fbd6ae36bc827926c4fc55d4333c.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>Currency</a> ::
+              
+              <a href='34a1930594d77e844d99993c0b2157b6.html'><span class='node-icon staruml-icon icon-ERDColumn'></span>id</a>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="fb361459605a6f53faf3c32e1a02e905.html">image</a></td>
+            <td>VARCHAR(255)</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>true</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="172aab97b51a2f07b98f5278208534af.html">initial_account_balance</a></td>
+            <td>DECIMAL(10,2)</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="a5d68ec4e64a3075c97476b510332665.html">initial_balance_date</a></td>
+            <td>DATE</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="0dba7ae3fcc7797b66d81d9145ad6cc7.html">enabled</a></td>
+            <td>BOOLEAN</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="1187b72f0129065ac9c068523ee90ae4.html">balance</a></td>
+            <td>DECIMAL(10,2)</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+            <td>
+              
+              <span class='label label-info'>null</span>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+          <tr>
+            <td><a href="a7158fffd60745844f3adc9e4499c5ee.html">user_id</a></td>
+            <td>INTEGER(10)</td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>true</span></td>
+            <td>
+              
+                <a href='becc8615663afee9ee8dd0c8152c2d5f.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>User</a> ::
+              
+              <a href='05ebfeaf7792cb670e349f89e8b91bc4.html'><span class='node-icon staruml-icon icon-ERDColumn'></span>id</a>
+            </td>
+            <td><span class='label label-info'>false</span></td>
+            <td><span class='label label-info'>false</span></td>
+          </tr>
+          
+        </table>                
+      </section>
+      
+
+      <!-- Related Entities (ERD) -->
+
+      
+      <section>
+        <h3>Related Entities</h3>
+        
+        <table class="table table-striped table-bordered">
+          <tr>
+            <th width="25%">Entity</th>
+            <th width="25%">Cardinality</th>
+            <th width="25%">Reference Name</th>
+            <th width="25%">Relationship</th>
+          </tr>
+          
+          
+          <tr>
+            <td><a href='becc8615663afee9ee8dd0c8152c2d5f.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>User</a></td>
+            <td>1</td>
+            <td></td>
+            <td><a href='fb5343cac59406f73308f817a828b704.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(User—Account)</a></td>
+          </tr>
+          
+          
+          <tr>
+            <td><a href='f115655dd6d33bde51cc49f6893b72c5.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>Transaction</a></td>
+            <td>0..*</td>
+            <td></td>
+            <td><a href='4420d399e080d1c4e380ae78b2f62f3e.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transaction)</a></td>
+          </tr>
+          
+          
+          <tr>
+            <td><a href='73a2fbd6ae36bc827926c4fc55d4333c.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>Currency</a></td>
+            <td>1</td>
+            <td></td>
+            <td><a href='ba798c8af7b56e2b84ec57145d315d43.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Currency—Account)</a></td>
+          </tr>
+          
+          
+          <tr>
+            <td><a href='422145fe153230ce34c70fa176198d79.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>Transfer</a></td>
+            <td>0..*</td>
+            <td></td>
+            <td><a href='79c3cda1191473416e1a2d89f1d87c3f.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transfer)</a></td>
+          </tr>
+          
+          
+          <tr>
+            <td><a href='422145fe153230ce34c70fa176198d79.html'><span class='node-icon staruml-icon icon-ERDEntity'></span>Transfer</a></td>
+            <td>0..*</td>
+            <td></td>
+            <td><a href='2a1bb54372d0913ce6fd993393522dfb.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transfer)</a></td>
+          </tr>
+          
+        </table>                
+      </section>
+      
+
+      <!-- Data Flows (DFD) -->
+
+      
+
+      <!-- Flows (Flowchart) -->
+
+      
+
+      <!-- Properties -->
+
+      <section>
+        <h3>Properties</h3>
+        
+        <table class="table table-striped table-bordered">
+    <tr>
+        <th width="50%">Name</th>
+        <th width="50%">Value</th>
+    </tr>
+    
+    
+    
+    
+    
+    
+    
+    <tr>
+        <td>name</td>
+        <td>Account</td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+</table>                
+
+      </section>
+
+      <!-- Tags -->
+
+      
+
+      <!-- Constraints, Dependencies, Dependants -->
+
+      
+
+      <!-- Relationships -->
+
+      
+      
+<section class="element-list">
+    <h3>Relationships</h3>
+    <ul class="nav nav-list">
+        
+        <li><a href='fb5343cac59406f73308f817a828b704.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(User—Account)</a></li>
+        
+        <li><a href='4420d399e080d1c4e380ae78b2f62f3e.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transaction)</a></li>
+        
+        <li><a href='ba798c8af7b56e2b84ec57145d315d43.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Currency—Account)</a></li>
+        
+        <li><a href='79c3cda1191473416e1a2d89f1d87c3f.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transfer)</a></li>
+        
+        <li><a href='2a1bb54372d0913ce6fd993393522dfb.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transfer)</a></li>
+        
+    </ul>
+</section>
+
+
+
+      <!-- Owned Elements -->
+
+      
+      
+<section class="element-list">
+    <h3>Owned Elements</h3>
+    <ul class="nav nav-list">
+        
+        <li><a href='4420d399e080d1c4e380ae78b2f62f3e.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transaction)</a></li>
+        
+        <li><a href='79c3cda1191473416e1a2d89f1d87c3f.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transfer)</a></li>
+        
+        <li><a href='2a1bb54372d0913ce6fd993393522dfb.html'><span class='node-icon staruml-icon icon-ERDRelationship'></span>(Account—Transfer)</a></li>
+        
+    </ul>
+</section>
+
+
+
+    </div>
+  </body>
+</html>
