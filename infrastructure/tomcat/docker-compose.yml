@@ -1,0 +1,7 @@
+version: "3.8"
+services:
+  tomcat:
+    container_name: monefy-tomcat
+    image: "tomcat"
+    ports:
+      - "8888:8080"
