@@ -1,5 +1,6 @@
 package com.monefy.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,11 @@ public class AccountService {
 
     public Optional<Account> getAccountById(Long id) {
         return accountRepository.findById(id);
+    }
+
+    public Account createAccount(Account account) {
+    	account.setInitialBalanceDate(new Date());
+        return accountRepository.save(account);
     }
 
     public Account saveAccount(Account account) {

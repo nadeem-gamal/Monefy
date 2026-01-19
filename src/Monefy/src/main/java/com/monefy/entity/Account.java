@@ -1,6 +1,6 @@
 package com.monefy.entity;
 
-import java.sql.Date;
+import java.util.Date;
 
 import org.hibernate.annotations.GenericGenerator;
 
