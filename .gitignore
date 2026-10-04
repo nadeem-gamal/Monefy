@@ -1,0 +1,8 @@
+infrastructure/postgres/postgres/*
+infrastructure/postgres/README.md
+
+infrastructure/jenkins/jenkins/*
+infrastructure/jenkins/README.md
+
+infrastructure/tomcat/README.md
+

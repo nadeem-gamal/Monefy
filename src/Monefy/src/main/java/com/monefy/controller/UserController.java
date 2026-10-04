@@ -28,24 +28,28 @@ public class UserController {
         return userService.getAllUsers();
     }
 
-//    @GetMapping("/{id}")
-//    public Optional<User> getUserById(@PathVariable Long id) {
-//        return userService.getUserById(id);
-//    }
+    @GetMapping("/{id}")
+    public Optional<User> getUserById(@PathVariable Long id) {
+        return userService.getUserById(id);
+    }
 
-    @GetMapping("/{username}")
+    @GetMapping("/username/{username}")
     public Optional<User> getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username);
     }
 
-    @PutMapping("/{username}")
+    @PutMapping("/username/{username}")
     public User updateUser(@PathVariable String username, @RequestBody User user) {
-//        return userService.saveUser(user);
-    	throw new UnsupportedOperationException();
+        return userService.saveUser(user);
+    }
+
+    @PostMapping
+    public User createUser(@RequestBody User user) {
+        return userService.saveUser(user);
     }
 
     @PostMapping("/signup")
-    public User createUser(@RequestBody User user) {
+    public User signupUser(@RequestBody User user) {
         return userService.saveUser(user);
     }
 

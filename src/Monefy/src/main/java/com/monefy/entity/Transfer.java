@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,7 +19,6 @@ import lombok.ToString;
 @Setter
 @ToString
 @Entity
-@AllArgsConstructor
 @NoArgsConstructor
 public class Transfer {
 
@@ -41,4 +39,22 @@ public class Transfer {
 	private float amount;
 
 	private String description;
+
+	public Transfer(Long id, Date date, int fromAccountId, int toAccountId, float amount, String description) {
+		this.id = id;
+		this.date = date;
+		this.fromAccountId = fromAccountId;
+		this.toAccountId = toAccountId;
+		this.amount = amount;
+		this.description = description;
+	}
+
+	public Transfer(long id, Date date, int fromAccountId, int toAccountId, int amount, String description) {
+		this.id = id;
+		this.date = date;
+		this.fromAccountId = fromAccountId;
+		this.toAccountId = toAccountId;
+		this.amount = amount;
+		this.description = description;
+	}
 }

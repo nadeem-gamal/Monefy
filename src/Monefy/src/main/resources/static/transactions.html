@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .form-container input {
+            margin-right: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .delete-btn {
+            background-color: #f44336;
+        }
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Transaction Management</h1>
+
+    <div class="form-container">
+        <h3>Add New Transaction</h3>
+        <input type="number" id="transactionAmount" placeholder="Amount" step="0.01" required>
+        <input type="date" id="transactionDate" required>
+        <input type="text" id="transactionDescription" placeholder="Description">
+        <input type="number" id="transactionAccountId" placeholder="Account ID" required>
+        <input type="number" id="transactionCategoryId" placeholder="Category ID" required>
+        <button onclick="addTransaction()">Add Transaction</button>
+    </div>
+
+    <h3>Transactions</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Account ID</th>
+                <th>Category ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="transactionTableBody">
+        </tbody>
+    </table>
+
+    <script>
+        const apiUrl = '/transactions';
+
+        async function fetchTransactions() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const transactions = await response.json();
+                displayTransactions(transactions);
+            } catch (error) {
+                console.error('Error fetching transactions:', error);
+                alert('Failed to load transactions');
+            }
+        }
+
+        function displayTransactions(transactions) {
+            const tableBody = document.getElementById('transactionTableBody');
+            tableBody.innerHTML = '';
+
+            transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${transaction.id}</td>
+                    <td>${transaction.amount}</td>
+                    <td>${transaction.date}</td>
+                    <td>${transaction.description || 'N/A'}</td>
+                    <td>${transaction.accountId}</td>
+                    <td>${transaction.categoryId}</td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function addTransaction() {
+            const amount = document.getElementById('transactionAmount').value;
+            const date = document.getElementById('transactionDate').value;
+            const description = document.getElementById('transactionDescription').value.trim();
+            const accountId = document.getElementById('transactionAccountId').value;
+            const categoryId = document.getElementById('transactionCategoryId').value;
+
+            if (!amount || !date || !accountId || !categoryId) {
+                alert('Amount, Date, Account ID, and Category ID are required!');
+                return;
+            }
+
+            const newTransaction = {
+                amount: parseFloat(amount),
+                date: date,
+                description: description,
+                accountId: parseInt(accountId),
+                categoryId: parseInt(categoryId)
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newTransaction)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                document.getElementById('transactionAmount').value = '';
+                document.getElementById('transactionDate').value = '';
+                document.getElementById('transactionDescription').value = '';
+                document.getElementById('transactionAccountId').value = '';
+                document.getElementById('transactionCategoryId').value = '';
+                fetchTransactions();
+                alert('Transaction added successfully!');
+            } catch (error) {
+                console.error('Error adding transaction:', error);
+                alert('Failed to add transaction');
+            }
+        }
+
+        async function deleteTransaction(id) {
+            if (!confirm('Are you sure you want to delete this transaction?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                fetchTransactions();
+                alert('Transaction deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting transaction:', error);
+                alert('Failed to delete transaction');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchTransactions);
+    </script>
+</body>
+</html>

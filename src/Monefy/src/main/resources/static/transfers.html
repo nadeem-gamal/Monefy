@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .form-container input {
+            margin-right: 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .delete-btn {
+            background-color: #f44336;
+        }
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Transfer Management</h1>
+
+    <div class="form-container">
+        <h3>Add New Transfer</h3>
+        <input type="number" id="transferAmount" placeholder="Amount" step="0.01" required>
+        <input type="date" id="transferDate" required>
+        <input type="number" id="fromAccountId" placeholder="From Account ID" required>
+        <input type="number" id="toAccountId" placeholder="To Account ID" required>
+        <input type="text" id="transferDescription" placeholder="Description">
+        <button onclick="addTransfer()">Add Transfer</button>
+    </div>
+
+    <h3>Transfers</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>From Account</th>
+                <th>To Account</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="transferTableBody">
+        </tbody>
+    </table>
+
+    <script>
+        const apiUrl = '/transfers';
+
+        async function fetchTransfers() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const transfers = await response.json();
+                displayTransfers(transfers);
+            } catch (error) {
+                console.error('Error fetching transfers:', error);
+                alert('Failed to load transfers');
+            }
+        }
+
+        function displayTransfers(transfers) {
+            const tableBody = document.getElementById('transferTableBody');
+            tableBody.innerHTML = '';
+
+            transfers.forEach(transfer => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${transfer.id}</td>
+                    <td>${transfer.amount}</td>
+                    <td>${transfer.date}</td>
+                    <td>${transfer.fromAccountId}</td>
+                    <td>${transfer.toAccountId}</td>
+                    <td>${transfer.description || 'N/A'}</td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteTransfer(${transfer.id})">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function addTransfer() {
+            const amount = document.getElementById('transferAmount').value;
+            const date = document.getElementById('transferDate').value;
+            const fromAccountId = document.getElementById('fromAccountId').value;
+            const toAccountId = document.getElementById('toAccountId').value;
+            const description = document.getElementById('transferDescription').value.trim();
+
+            if (!amount || !date || !fromAccountId || !toAccountId) {
+                alert('Amount, Date, From Account ID, and To Account ID are required!');
+                return;
+            }
+
+            const newTransfer = {
+                amount: parseFloat(amount),
+                date: date,
+                fromAccountId: parseInt(fromAccountId),
+                toAccountId: parseInt(toAccountId),
+                description: description
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newTransfer)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                document.getElementById('transferAmount').value = '';
+                document.getElementById('transferDate').value = '';
+                document.getElementById('fromAccountId').value = '';
+                document.getElementById('toAccountId').value = '';
+                document.getElementById('transferDescription').value = '';
+                fetchTransfers();
+                alert('Transfer added successfully!');
+            } catch (error) {
+                console.error('Error adding transfer:', error);
+                alert('Failed to add transfer');
+            }
+        }
+
+        async function deleteTransfer(id) {
+            if (!confirm('Are you sure you want to delete this transfer?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                fetchTransfers();
+                alert('Transfer deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting transfer:', error);
+                alert('Failed to delete transfer');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchTransfers);
+    </script>
+</body>
+</html>
