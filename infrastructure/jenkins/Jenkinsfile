@@ -1,0 +1,15 @@
+node {
+    stage('Preparation') { // for display purposes
+        // Get some code from a GitHub repository
+        git 'https://github.com/nadeem-gamal/Monefy.git'
+    }
+    stage('Build') {
+        // Run the maven build
+        sh 'cd /var/jenkins_home/workspace/Monefy/src/Monefy && chmod +x mvnw'
+        sh 'cd /var/jenkins_home/workspace/Monefy/src/Monefy && ./mvnw clean test install'
+    }
+    stage('Results') {
+        junit 'src/Monefy/target/surefire-reports/TEST-*.xml'
+        archiveArtifacts 'src/Monefy/target/*.jar'
+    }
+}
