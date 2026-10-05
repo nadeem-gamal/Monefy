@@ -41,6 +41,33 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        dialog {
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-width: 300px;
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .edit-form label {
+            display: block;
+            margin: 12px 0 5px;
+        }
+        .edit-form input {
+            box-sizing: border-box;
+            padding: 8px;
+            width: 100%;
+        }
+        .edit-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .cancel-btn {
+            background-color: #777;
+        }
         button {
             background-color: #4CAF50;
             color: white;
@@ -90,8 +117,30 @@
         </tbody>
     </table>
 
+    <dialog id="editTransactionDialog">
+        <form id="editTransactionForm" class="edit-form">
+            <h3>Edit Transaction</h3>
+            <label for="editTransactionAmount">Amount</label>
+            <input type="number" id="editTransactionAmount" step="0.01" required>
+            <label for="editTransactionDate">Date</label>
+            <input type="date" id="editTransactionDate" required>
+            <label for="editTransactionDescription">Description</label>
+            <input type="text" id="editTransactionDescription">
+            <label for="editTransactionAccountId">Account ID</label>
+            <input type="number" id="editTransactionAccountId" required>
+            <label for="editTransactionCategoryId">Category ID</label>
+            <input type="number" id="editTransactionCategoryId" required>
+            <div class="edit-form-actions">
+                <button type="button" class="cancel-btn" onclick="document.getElementById('editTransactionDialog').close()">Cancel</button>
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
-        const apiUrl = '/transactions';
+        const apiUrl = '/api/v3/transaction';
+        let transactionsCache = [];
+        let editingTransaction = null;
 
         async function fetchTransactions() {
             try {
@@ -100,6 +149,7 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const transactions = await response.json();
+                transactionsCache = transactions;
                 displayTransactions(transactions);
             } catch (error) {
                 console.error('Error fetching transactions:', error);
@@ -121,6 +171,7 @@
                     <td>${transaction.accountId}</td>
                     <td>${transaction.categoryId}</td>
                     <td>
+                        <button onclick="editTransaction(${transaction.id})">Edit</button>
                         <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">Delete</button>
                     </td>
                 `;
@@ -196,6 +247,45 @@
             }
         }
 
+        function editTransaction(id) {
+            editingTransaction = transactionsCache.find(transaction => transaction.id === id);
+            if (!editingTransaction) return;
+            document.getElementById('editTransactionAmount').value = editingTransaction.amount;
+            document.getElementById('editTransactionDate').value = String(editingTransaction.date).slice(0, 10);
+            document.getElementById('editTransactionDescription').value = editingTransaction.description ?? '';
+            document.getElementById('editTransactionAccountId').value = editingTransaction.accountId;
+            document.getElementById('editTransactionCategoryId').value = editingTransaction.categoryId;
+            document.getElementById('editTransactionDialog').showModal();
+        }
+
+        async function updateTransaction(event) {
+            event.preventDefault();
+            const transaction = {
+                ...editingTransaction,
+                amount: Number(document.getElementById('editTransactionAmount').value),
+                date: document.getElementById('editTransactionDate').value,
+                description: document.getElementById('editTransactionDescription').value.trim(),
+                accountId: Number(document.getElementById('editTransactionAccountId').value),
+                categoryId: Number(document.getElementById('editTransactionCategoryId').value),
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transaction),
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                document.getElementById('editTransactionDialog').close();
+                await fetchTransactions();
+                alert('Transaction updated successfully!');
+            } catch (error) {
+                console.error('Error updating transaction:', error);
+                alert('Failed to update transaction');
+            }
+        }
+
+        document.getElementById('editTransactionForm').addEventListener('submit', updateTransaction);
         document.addEventListener('DOMContentLoaded', fetchTransactions);
     </script>
 </body>

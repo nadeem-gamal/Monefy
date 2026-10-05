@@ -75,6 +75,21 @@ class TransferControllerTest {
     }
 
     @Test
+    void testUpdateTransfer() throws Exception {
+        Transfer transfer = new Transfer(1L, Date.valueOf("2023-10-10"), 1, 2, 150, "Updated transfer");
+
+        when(transferService.saveTransfer(any(Transfer.class))).thenReturn(transfer);
+
+        mockMvc.perform(put("/transfers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":1,\"amount\":150.0,\"date\":\"2023-10-10\",\"fromAccountId\":1,\"toAccountId\":2,\"description\":\"Updated transfer\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.amount").value(150.0))
+                .andExpect(jsonPath("$.description").value("Updated transfer"));
+    }
+
+    @Test
     void testDeleteTransfer() throws Exception {
         mockMvc.perform(delete("/transfers/1"))
                 .andExpect(status().isOk());

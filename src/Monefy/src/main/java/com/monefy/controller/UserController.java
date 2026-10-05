@@ -40,7 +40,10 @@ public class UserController {
 
     @PutMapping("/username/{username}")
     public User updateUser(@PathVariable String username, @RequestBody User user) {
-        return userService.saveUser(user);
+        User existingUser = userService.getUserByUsername(username).orElseThrow();
+        existingUser.setUsername(user.getUsername());
+        existingUser.setEmail(user.getEmail());
+        return userService.saveUser(existingUser);
     }
 
     @PostMapping

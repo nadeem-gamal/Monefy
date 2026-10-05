@@ -41,6 +41,33 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        dialog {
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-width: 300px;
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .edit-form label {
+            display: block;
+            margin: 12px 0 5px;
+        }
+        .edit-form input {
+            box-sizing: border-box;
+            padding: 8px;
+            width: 100%;
+        }
+        .edit-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .cancel-btn {
+            background-color: #777;
+        }
         button {
             background-color: #4CAF50;
             color: white;
@@ -85,8 +112,23 @@
         </tbody>
     </table>
 
+    <dialog id="editUserDialog">
+        <form id="editUserForm" class="edit-form">
+            <h3>Edit User</h3>
+            <label for="editUserName">Username</label>
+            <input type="text" id="editUserName" required>
+            <label for="editUserEmail">Email</label>
+            <input type="email" id="editUserEmail" required>
+            <div class="edit-form-actions">
+                <button type="button" class="cancel-btn" onclick="document.getElementById('editUserDialog').close()">Cancel</button>
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
-        const apiUrl = '/user';
+        const apiUrl = '/api/v3/user';
+        let editingUser = null;
 
         async function fetchUsers() {
             try {
@@ -104,18 +146,26 @@
 
         function displayUsers(users) {
             const tableBody = document.getElementById('userTableBody');
-            tableBody.innerHTML = '';
+            tableBody.replaceChildren();
 
             users.forEach(user => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${user.id}</td>
-                    <td>${user.username || 'N/A'}</td>
-                    <td>${user.email || 'N/A'}</td>
-                    <td>
-                        <button class="delete-btn" onclick="deleteUser(${user.id})">Delete</button>
-                    </td>
-                `;
+                const idCell = document.createElement('td');
+                idCell.textContent = user.id;
+                const usernameCell = document.createElement('td');
+                usernameCell.textContent = user.username || 'N/A';
+                const emailCell = document.createElement('td');
+                emailCell.textContent = user.email || 'N/A';
+                const actionsCell = document.createElement('td');
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => editUser(user));
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-btn';
+                deleteButton.addEventListener('click', () => deleteUser(user.id));
+                actionsCell.append(editButton, deleteButton);
+                row.append(idCell, usernameCell, emailCell, actionsCell);
                 tableBody.appendChild(row);
             });
         }
@@ -182,6 +232,38 @@
             }
         }
 
+        function editUser(user) {
+            editingUser = user;
+            document.getElementById('editUserName').value = user.username ?? '';
+            document.getElementById('editUserEmail').value = user.email ?? '';
+            document.getElementById('editUserDialog').showModal();
+        }
+
+        async function updateUser(event) {
+            event.preventDefault();
+            const user = {
+                id: editingUser.id,
+                username: document.getElementById('editUserName').value.trim(),
+                email: document.getElementById('editUserEmail').value.trim(),
+            };
+
+            try {
+                const response = await fetch(`${apiUrl}/username/${encodeURIComponent(editingUser.username)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(user),
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                document.getElementById('editUserDialog').close();
+                await fetchUsers();
+                alert('User updated successfully!');
+            } catch (error) {
+                console.error('Error updating user:', error);
+                alert('Failed to update user');
+            }
+        }
+
+        document.getElementById('editUserForm').addEventListener('submit', updateUser);
         document.addEventListener('DOMContentLoaded', fetchUsers);
     </script>
 </body>

@@ -41,6 +41,33 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        dialog {
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-width: 300px;
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .edit-form label {
+            display: block;
+            margin: 12px 0 5px;
+        }
+        .edit-form input {
+            box-sizing: border-box;
+            padding: 8px;
+            width: 100%;
+        }
+        .edit-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .cancel-btn {
+            background-color: #777;
+        }
         button {
             background-color: #4CAF50;
             color: white;
@@ -90,8 +117,30 @@
         </tbody>
     </table>
 
+    <dialog id="editTransferDialog">
+        <form id="editTransferForm" class="edit-form">
+            <h3>Edit Transfer</h3>
+            <label for="editTransferAmount">Amount</label>
+            <input type="number" id="editTransferAmount" step="0.01" required>
+            <label for="editTransferDate">Date</label>
+            <input type="date" id="editTransferDate" required>
+            <label for="editFromAccountId">From Account ID</label>
+            <input type="number" id="editFromAccountId" required>
+            <label for="editToAccountId">To Account ID</label>
+            <input type="number" id="editToAccountId" required>
+            <label for="editTransferDescription">Description</label>
+            <input type="text" id="editTransferDescription">
+            <div class="edit-form-actions">
+                <button type="button" class="cancel-btn" onclick="document.getElementById('editTransferDialog').close()">Cancel</button>
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
-        const apiUrl = '/transfers';
+        const apiUrl = '/api/v3/transfers';
+        let transfersCache = [];
+        let editingTransfer = null;
 
         async function fetchTransfers() {
             try {
@@ -100,6 +149,7 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const transfers = await response.json();
+                transfersCache = transfers;
                 displayTransfers(transfers);
             } catch (error) {
                 console.error('Error fetching transfers:', error);
@@ -121,6 +171,7 @@
                     <td>${transfer.toAccountId}</td>
                     <td>${transfer.description || 'N/A'}</td>
                     <td>
+                        <button onclick="editTransfer(${transfer.id})">Edit</button>
                         <button class="delete-btn" onclick="deleteTransfer(${transfer.id})">Delete</button>
                     </td>
                 `;
@@ -196,6 +247,45 @@
             }
         }
 
+        function editTransfer(id) {
+            editingTransfer = transfersCache.find(transfer => transfer.id === id);
+            if (!editingTransfer) return;
+            document.getElementById('editTransferAmount').value = editingTransfer.amount;
+            document.getElementById('editTransferDate').value = String(editingTransfer.date).slice(0, 10);
+            document.getElementById('editFromAccountId').value = editingTransfer.fromAccountId;
+            document.getElementById('editToAccountId').value = editingTransfer.toAccountId;
+            document.getElementById('editTransferDescription').value = editingTransfer.description ?? '';
+            document.getElementById('editTransferDialog').showModal();
+        }
+
+        async function updateTransfer(event) {
+            event.preventDefault();
+            const transfer = {
+                ...editingTransfer,
+                amount: Number(document.getElementById('editTransferAmount').value),
+                date: document.getElementById('editTransferDate').value,
+                fromAccountId: Number(document.getElementById('editFromAccountId').value),
+                toAccountId: Number(document.getElementById('editToAccountId').value),
+                description: document.getElementById('editTransferDescription').value.trim(),
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transfer),
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                document.getElementById('editTransferDialog').close();
+                await fetchTransfers();
+                alert('Transfer updated successfully!');
+            } catch (error) {
+                console.error('Error updating transfer:', error);
+                alert('Failed to update transfer');
+            }
+        }
+
+        document.getElementById('editTransferForm').addEventListener('submit', updateTransfer);
         document.addEventListener('DOMContentLoaded', fetchTransfers);
     </script>
 </body>

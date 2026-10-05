@@ -42,6 +42,33 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        dialog {
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-width: 300px;
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .edit-form label {
+            display: block;
+            margin: 12px 0 5px;
+        }
+        .edit-form input {
+            box-sizing: border-box;
+            padding: 8px;
+            width: 100%;
+        }
+        .edit-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .cancel-btn {
+            background-color: #777;
+        }
         button {
             background-color: #4CAF50;
             color: white;
@@ -96,10 +123,25 @@
         </tbody>
     </table>
 
+    <dialog id="editAccountDialog">
+        <form id="editAccountForm" class="edit-form">
+            <h3>Edit Account</h3>
+            <label for="editAccountName">Name</label>
+            <input type="text" id="editAccountName" required>
+            <label for="editAccountImage">Image URL</label>
+            <input type="text" id="editAccountImage">
+            <div class="edit-form-actions">
+                <button type="button" class="cancel-btn" onclick="document.getElementById('editAccountDialog').close()">Cancel</button>
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
-        const apiUrl = '/account';
-        const usersApiUrl = '/user';
-        const currenciesApiUrl = '/currency';
+        const apiUrl = '/api/v3/account';
+        const usersApiUrl = '/api/v3/user';
+        const currenciesApiUrl = '/api/v3/currency';
+        let editingAccount = null;
 
         async function fetchUsers() {
             try {
@@ -154,6 +196,7 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const accounts = await response.json();
+                accountsCache = accounts;
                 displayAccounts(accounts);
             } catch (error) {
                 console.error('Error fetching accounts:', error);
@@ -176,6 +219,7 @@
                     <td>${account.initialAccountBalance}</td>
                     <td>${account.balance}</td>
                     <td>
+                        <button onclick="editAccount(${account.id})">Edit</button>
                         <button class="delete-btn" onclick="deleteAccount(${account.id})">Delete</button>
                     </td>
                 `;
@@ -253,6 +297,40 @@
             }
         }
 
+        function editAccount(id) {
+            editingAccount = accountsCache.find(account => account.id === id);
+            if (!editingAccount) return;
+            document.getElementById('editAccountName').value = editingAccount.name ?? '';
+            document.getElementById('editAccountImage').value = editingAccount.image ?? '';
+            document.getElementById('editAccountDialog').showModal();
+        }
+
+        async function updateAccount(event) {
+            event.preventDefault();
+            const account = {
+                ...editingAccount,
+                name: document.getElementById('editAccountName').value.trim(),
+                image: document.getElementById('editAccountImage').value.trim(),
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(account),
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                document.getElementById('editAccountDialog').close();
+                await fetchAccounts();
+                alert('Account updated successfully!');
+            } catch (error) {
+                console.error('Error updating account:', error);
+                alert('Failed to update account');
+            }
+        }
+
+        let accountsCache = [];
+        document.getElementById('editAccountForm').addEventListener('submit', updateAccount);
         document.addEventListener('DOMContentLoaded', () => {
             fetchUsers();
             fetchCurrencies();
