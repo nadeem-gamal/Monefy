@@ -66,7 +66,6 @@
     <div class="form-container">
         <h3>Add New Category</h3>
         <input type="text" id="categoryName" placeholder="Category Name" required>
-        <input type="text" id="categoryDescription" placeholder="Category Description">
         <button onclick="addCategory()">Add Category</button>
     </div>
 
@@ -74,9 +73,7 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Name</th>
-                <th>Description</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -85,7 +82,7 @@
     </table>
 
     <script>
-        const apiUrl = '/category';
+        const apiUrl = '/api/v3/category';
 
         async function fetchCategories() {
             try {
@@ -108,9 +105,7 @@
             categories.forEach(category => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${category.id}</td>
                     <td>${category.name}</td>
-                    <td>${category.description || 'N/A'}</td>
                     <td>
                         <button class="delete-btn" onclick="deleteCategory(${category.id})">Delete</button>
                     </td>
@@ -121,7 +116,6 @@
 
         async function addCategory() {
             const nameInput = document.getElementById('categoryName');
-            const descriptionInput = document.getElementById('categoryDescription');
 
             if (!nameInput.value.trim()) {
                 alert('Category name is required!');
@@ -130,7 +124,6 @@
 
             const newCategory = {
                 name: nameInput.value.trim(),
-                description: descriptionInput.value.trim()
             };
 
             try {
@@ -147,7 +140,6 @@
                 }
 
                 nameInput.value = '';
-                descriptionInput.value = '';
                 fetchCategories();
                 alert('Category added successfully!');
             } catch (error) {

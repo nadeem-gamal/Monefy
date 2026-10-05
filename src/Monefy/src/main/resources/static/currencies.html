@@ -65,8 +65,7 @@
 
     <div class="form-container">
         <h3>Add New Currency</h3>
-        <input type="text" id="currencyName" placeholder="Currency Name" required>
-        <input type="text" id="currencyCode" placeholder="Currency Code (e.g., USD)" required>
+        <input type="text" id="currencyName" placeholder="Currency Name (e.g., USD)" required>
         <input type="text" id="currencySymbol" placeholder="Currency Symbol (e.g., $)" required>
         <button onclick="addCurrency()">Add Currency</button>
     </div>
@@ -75,9 +74,7 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Name</th>
-                <th>Code</th>
                 <th>Symbol</th>
                 <th>Actions</th>
             </tr>
@@ -110,9 +107,7 @@
             currencies.forEach(currency => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${currency.id}</td>
                     <td>${currency.name}</td>
-                    <td>${currency.code}</td>
                     <td>${currency.symbol}</td>
                     <td>
                         <button class="delete-btn" onclick="deleteCurrency(${currency.id})">Delete</button>
@@ -124,17 +119,15 @@
 
         async function addCurrency() {
             const name = document.getElementById('currencyName').value.trim();
-            const code = document.getElementById('currencyCode').value.trim();
             const symbol = document.getElementById('currencySymbol').value.trim();
 
-            if (!name || !code || !symbol) {
+            if (!name || !symbol) {
                 alert('All fields are required!');
                 return;
             }
 
             const newCurrency = {
                 name: name,
-                code: code,
                 symbol: symbol
             };
 
@@ -152,7 +145,6 @@
                 }
 
                 document.getElementById('currencyName').value = '';
-                document.getElementById('currencyCode').value = '';
                 document.getElementById('currencySymbol').value = '';
                 fetchCurrencies();
                 alert('Currency added successfully!');
