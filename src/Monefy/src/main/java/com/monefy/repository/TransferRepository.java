@@ -8,4 +8,5 @@ import com.monefy.entity.Transfer;
 @Repository
 public interface TransferRepository extends JpaRepository<Transfer, Long> {
 
+    boolean existsByFromAccountIdOrToAccountId(int fromAccountId, int toAccountId);
 }

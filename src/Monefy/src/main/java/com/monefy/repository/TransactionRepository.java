@@ -8,4 +8,5 @@ import com.monefy.entity.Transaction;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
+    boolean existsByAccountId(int accountId);
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.monefy.entity.Transfer;
+import com.monefy.exception.BusinessRuleException;
 import com.monefy.service.TransferService;
 
 @RestController
@@ -35,11 +36,15 @@ public class TransferController {
 
     @PostMapping
     public Transfer createTransfer(@RequestBody Transfer transfer) {
+        transfer.setId(null);
         return transferService.saveTransfer(transfer);
     }
 
     @PutMapping
     public Transfer updateTransfer(@RequestBody Transfer transfer) {
+        if (transfer.getId() == null) {
+            throw new BusinessRuleException("Transfer id is required for an update");
+        }
         return transferService.saveTransfer(transfer);
     }
 

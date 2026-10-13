@@ -35,6 +35,7 @@ public class AccountController {
 
     @PostMapping
     public Account createAccount(@RequestBody Account account) {
+        account.setId(null);
         return accountService.saveAccount(account);
     }
 
