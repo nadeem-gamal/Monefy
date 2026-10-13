@@ -41,6 +41,7 @@ public class AccountService {
 
     @Transactional
     public Account createAccount(Account account) {
+        validate(account);
         account.setId(null);
         account.setInitialBalanceDate(new Date());
         account.setBalance(account.getInitialAccountBalance());
@@ -58,6 +59,8 @@ public class AccountService {
             return createAccount(account);
         }
 
+        validate(account);
+
         Account existing = accountRepository.findByIdForUpdate(account.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + account.getId()));
 
@@ -67,6 +70,19 @@ public class AccountService {
             account.setInitialBalanceDate(existing.getInitialBalanceDate());
         }
         return accountRepository.save(account);
+    }
+
+    private void validate(Account account) {
+        if (account.getName() == null || account.getName().isBlank()) {
+            throw new BusinessRuleException("Account name is required");
+        }
+        if (account.getCurrency() <= 0) {
+            throw new BusinessRuleException("Account currency is required");
+        }
+        if (account.getUserId() <= 0) {
+            throw new BusinessRuleException("Account user is required");
+        }
+        account.setName(account.getName().trim());
     }
 
     @Transactional

@@ -109,7 +109,6 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Username</th>
                 <th>Name</th>
                 <th>Currency</th>
@@ -141,6 +140,25 @@
         const apiUrl = '/api/v3/account';
         const usersApiUrl = '/api/v3/user';
         const currenciesApiUrl = '/api/v3/currency';
+        let usersById = {};
+        let currenciesById = {};
+
+        function userName(id) {
+            return usersById[id] ?? (id ? `User ${id}` : 'N/A');
+        }
+
+        function currencyName(id) {
+            return currenciesById[id] ?? (id ? `Currency ${id}` : 'N/A');
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // Users, currencies and accounts load in parallel; redraw once the names are known
+        function refreshAccountNames() {
+            if (accountsCache.length) displayAccounts(accountsCache);
+        }
         let editingAccount = null;
 
         async function fetchUsers() {
@@ -151,6 +169,7 @@
                 }
                 const users = await response.json();
                 populateUserDropdown(users);
+                refreshAccountNames();
             } catch (error) {
                 console.error('Error fetching users:', error);
             }
@@ -161,6 +180,7 @@
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
+                usersById[user.id] = user.username;
                 option.textContent = user.username || `User ${user.id}`;
                 dropdown.appendChild(option);
             });
@@ -174,6 +194,7 @@
                 }
                 const currencies = await response.json();
                 populateCurrencyDropdown(currencies);
+                refreshAccountNames();
             } catch (error) {
                 console.error('Error fetching currencies:', error);
             }
@@ -184,7 +205,8 @@
             currencies.forEach(currency => {
                 const option = document.createElement('option');
                 option.value = currency.id;
-                option.textContent = `${currency.name} (${currency.code}) ${currency.symbol}`;
+                currenciesById[currency.id] = currency.name;
+                option.textContent = `${currency.name} (${currency.symbol})`;
                 dropdown.appendChild(option);
             });
         }
@@ -211,10 +233,9 @@
             accounts.forEach(account => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${account.id}</td>
-                    <td>${account.userId || 'N/A'}</td>
+                    <td>${escapeHtml(userName(account.userId))}</td>
                     <td>${account.name}</td>
-                    <td>${account.currency}</td>
+                    <td>${escapeHtml(currencyName(account.currency))}</td>
                     <td>${account.image || 'N/A'}</td>
                     <td>${account.initialAccountBalance}</td>
                     <td>${account.balance}</td>
