@@ -55,7 +55,8 @@
             display: block;
             margin: 12px 0 5px;
         }
-        .edit-form input {
+        .edit-form input,
+        .edit-form select {
             box-sizing: border-box;
             padding: 8px;
             width: 100%;
@@ -125,10 +126,17 @@
     <dialog id="editAccountDialog">
         <form id="editAccountForm" class="edit-form">
             <h3>Edit Account</h3>
+            <label for="editAccountUser">User</label>
+            <select id="editAccountUser" required></select>
             <label for="editAccountName">Name</label>
             <input type="text" id="editAccountName" required>
+            <label for="editAccountCurrency">Currency</label>
+            <select id="editAccountCurrency" required></select>
             <label for="editAccountImage">Image URL</label>
             <input type="text" id="editAccountImage">
+            <label for="editAccountInitialBalance">Initial Balance</label>
+            <input type="number" id="editAccountInitialBalance" step="0.01" required>
+            <small>Changing the initial balance also adjusts the current balance by the same amount.</small>
             <div class="edit-form-actions">
                 <button type="button" class="cancel-btn" onclick="document.getElementById('editAccountDialog').close()">Cancel</button>
                 <button type="submit">Save</button>
@@ -160,6 +168,16 @@
             if (accountsCache.length) displayAccounts(accountsCache);
         }
         let editingAccount = null;
+
+        // Shows the server's own message (e.g. "Account name is required") instead of a bare status code
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
 
         async function fetchUsers() {
             try {
@@ -321,6 +339,13 @@
         function editAccount(id) {
             editingAccount = accountsCache.find(account => account.id === id);
             if (!editingAccount) return;
+            const editUser = document.getElementById('editAccountUser');
+            editUser.innerHTML = document.getElementById('accountUser').innerHTML;
+            editUser.value = editingAccount.userId;
+            const editCurrency = document.getElementById('editAccountCurrency');
+            editCurrency.innerHTML = document.getElementById('accountCurrency').innerHTML;
+            editCurrency.value = editingAccount.currency;
+            document.getElementById('editAccountInitialBalance').value = editingAccount.initialAccountBalance;
             document.getElementById('editAccountName').value = editingAccount.name ?? '';
             document.getElementById('editAccountImage').value = editingAccount.image ?? '';
             document.getElementById('editAccountDialog').showModal();
@@ -332,6 +357,9 @@
                 ...editingAccount,
                 name: document.getElementById('editAccountName').value.trim(),
                 image: document.getElementById('editAccountImage').value.trim(),
+                userId: parseInt(document.getElementById('editAccountUser').value),
+                currency: parseInt(document.getElementById('editAccountCurrency').value),
+                initialAccountBalance: parseFloat(document.getElementById('editAccountInitialBalance').value),
             };
 
             try {
@@ -340,13 +368,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(account),
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(await errorMessage(response));
                 document.getElementById('editAccountDialog').close();
                 await fetchAccounts();
                 alert('Account updated successfully!');
             } catch (error) {
                 console.error('Error updating account:', error);
-                alert('Failed to update account');
+                alert('Failed to update account: ' + error.message);
             }
         }
 

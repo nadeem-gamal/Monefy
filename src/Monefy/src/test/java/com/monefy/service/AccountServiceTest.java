@@ -119,6 +119,36 @@ class AccountServiceTest {
     }
 
     @Test
+    void currencyCannotChangeOnceAccountHasTransactions() {
+        Account existing = newAccount("Cash", 1, 1, 100f);
+        existing.setId(3L);
+        when(accountRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(existing));
+        when(transactionRepository.existsByAccountId(3)).thenReturn(true);
+
+        Account edited = newAccount("Cash", 2, 1, 100f);
+        edited.setId(3L);
+
+        assertThrows(BusinessRuleException.class, () -> accountService.saveAccount(edited));
+
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    void currencyCanChangeWhileAccountIsUnused() {
+        Account existing = newAccount("Cash", 1, 1, 100f);
+        existing.setId(3L);
+        when(accountRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
+
+        Account edited = newAccount("Cash", 2, 1, 100f);
+        edited.setId(3L);
+
+        Account saved = accountService.saveAccount(edited);
+
+        assertEquals(2, saved.getCurrency());
+    }
+
+    @Test
     void unusedAccountCanBeDeleted() {
         when(accountRepository.existsById(3L)).thenReturn(true);
 

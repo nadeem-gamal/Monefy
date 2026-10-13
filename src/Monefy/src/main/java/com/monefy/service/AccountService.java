@@ -64,12 +64,23 @@ public class AccountService {
         Account existing = accountRepository.findByIdForUpdate(account.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + account.getId()));
 
+        if (account.getCurrency() != existing.getCurrency() && hasActivity(existing.getId())) {
+            throw new BusinessRuleException(
+                    "Currency can't be changed once the account has transactions or transfers");
+        }
+
         float initialBalanceChange = account.getInitialAccountBalance() - existing.getInitialAccountBalance();
         account.setBalance(BalanceCalculator.add(existing.getBalance(), initialBalanceChange));
         if (account.getInitialBalanceDate() == null) {
             account.setInitialBalanceDate(existing.getInitialBalanceDate());
         }
         return accountRepository.save(account);
+    }
+
+    private boolean hasActivity(Long id) {
+        int accountId = id.intValue();
+        return transactionRepository.existsByAccountId(accountId)
+                || transferRepository.existsByFromAccountIdOrToAccountId(accountId, accountId);
     }
 
     private void validate(Account account) {
