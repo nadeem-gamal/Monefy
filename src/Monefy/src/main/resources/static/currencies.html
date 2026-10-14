@@ -130,17 +130,27 @@
     <script>
         const apiUrl = '/api/v3/currency';
 
+        // Shows the server's own message instead of a bare status code
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
+
         async function fetchCurrencies() {
             try {
                 const response = await fetch(apiUrl + '/getAll');
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
                 const currencies = await response.json();
                 displayCurrencies(currencies);
             } catch (error) {
                 console.error('Error fetching currencies:', error);
-                alert('Failed to load currencies');
+                alert('Failed to load currencies: ' + error.message);
             }
         }
 
@@ -192,7 +202,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 document.getElementById('currencyName').value = '';
@@ -201,7 +211,7 @@
                 alert('Currency added successfully!');
             } catch (error) {
                 console.error('Error adding currency:', error);
-                alert('Failed to add currency');
+                alert('Failed to add currency: ' + error.message);
             }
         }
 
@@ -228,13 +238,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(currency),
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(await errorMessage(response));
                 document.getElementById('editCurrencyDialog').close();
                 await fetchCurrencies();
                 alert('Currency updated successfully!');
             } catch (error) {
                 console.error('Error updating currency:', error);
-                alert('Failed to update currency');
+                alert('Failed to update currency: ' + error.message);
             }
         }
 
@@ -249,14 +259,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 fetchCurrencies();
                 alert('Currency deleted successfully!');
             } catch (error) {
                 console.error('Error deleting currency:', error);
-                alert('Failed to delete currency');
+                alert('Failed to delete currency: ' + error.message);
             }
         }
 

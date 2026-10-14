@@ -47,6 +47,36 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .groups {
+            display: flex;
+            gap: 20px;
+        }
+        .group {
+            flex: 1;
+            min-width: 0;
+        }
+        .group h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot.income {
+            background-color: #2e7d32;
+        }
+        .dot.expense {
+            background-color: #c62828;
+        }
+        .empty-row td {
+            color: #888;
+            font-style: italic;
+        }
         dialog {
             border: none;
             border-radius: 5px;
@@ -108,18 +138,34 @@
         <button onclick="addCategory()">Add Category</button>
     </div>
 
-    <h3>Categories</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="categoryTableBody">
-        </tbody>
-    </table>
+    <div class="groups">
+        <div class="group">
+            <h3><span class="dot income"></span>Income Categories</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="incomeCategoryTableBody">
+                </tbody>
+            </table>
+        </div>
+        <div class="group">
+            <h3><span class="dot expense"></span>Expense Categories</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseCategoryTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <dialog id="editCategoryDialog">
         <form id="editCategoryForm" class="edit-form">
@@ -142,51 +188,88 @@
     <script>
         const apiUrl = '/api/v3/category';
 
+        // Shows the server's own message instead of a bare status code
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
+
+        function isIncome(category) {
+            return category.type === true || category.type === 'true';
+        }
+
         async function fetchCategories() {
             try {
                 const response = await fetch(apiUrl + "/getAll");
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
                 const categories = await response.json();
                 displayCategories(categories);
             } catch (error) {
                 console.error('Error fetching categories:', error);
-                alert('Failed to load categories');
+                alert('Failed to load categories: ' + error.message);
             }
         }
 
-        function displayCategories(categories) {
-            const tableBody = document.getElementById('categoryTableBody');
-            tableBody.replaceChildren();
+        function buildRow(category) {
+            const row = document.createElement('tr');
+            const nameCell = document.createElement('td');
+            nameCell.textContent = category.name ?? '';
 
-            categories.forEach(category => {
-                const row = document.createElement('tr');
-                const nameCell = document.createElement('td');
-                nameCell.textContent = category.name ?? '';
-
-                const typeCell = document.createElement('td');
-                const isIncome = category.type === true || category.type === 'true';
-                typeCell.textContent = isIncome ? 'Income' : 'Expense';
-
-                const actionsCell = document.createElement('td');
-                const editButton = document.createElement('button');
-                editButton.textContent = 'Edit';
-                editButton.addEventListener('click', () => {
-                    editCategory(category);
-                });
-
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.className = 'delete-btn';
-                deleteButton.addEventListener('click', () => {
-                    deleteCategory(category.id);
-                });
-
-                actionsCell.append(editButton, deleteButton);
-                row.append(nameCell, typeCell, actionsCell);
-                tableBody.appendChild(row);
+            const actionsCell = document.createElement('td');
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.addEventListener('click', () => {
+                editCategory(category);
             });
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.className = 'delete-btn';
+            deleteButton.addEventListener('click', () => {
+                deleteCategory(category.id);
+            });
+
+            actionsCell.append(editButton, deleteButton);
+            row.append(nameCell, actionsCell);
+            return row;
+        }
+
+        function emptyRow(text) {
+            const row = document.createElement('tr');
+            row.className = 'empty-row';
+            const cell = document.createElement('td');
+            cell.colSpan = 2;
+            cell.textContent = text;
+            row.appendChild(cell);
+            return row;
+        }
+
+        function displayCategories(categories) {
+            const incomeBody = document.getElementById('incomeCategoryTableBody');
+            const expenseBody = document.getElementById('expenseCategoryTableBody');
+            incomeBody.replaceChildren();
+            expenseBody.replaceChildren();
+
+            const income = categories.filter(isIncome);
+            const expense = categories.filter(category => !isIncome(category));
+
+            if (income.length === 0) {
+                incomeBody.appendChild(emptyRow('No income categories yet'));
+            } else {
+                income.forEach(category => incomeBody.appendChild(buildRow(category)));
+            }
+
+            if (expense.length === 0) {
+                expenseBody.appendChild(emptyRow('No expense categories yet'));
+            } else {
+                expense.forEach(category => expenseBody.appendChild(buildRow(category)));
+            }
         }
 
         async function addCategory() {
@@ -212,7 +295,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 nameInput.value = '';
@@ -220,7 +303,7 @@
                 alert('Category added successfully!');
             } catch (error) {
                 console.error('Error adding category:', error);
-                alert('Failed to add category');
+                alert('Failed to add category: ' + error.message);
             }
         }
 
@@ -235,22 +318,21 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 fetchCategories();
                 alert('Category deleted successfully!');
             } catch (error) {
                 console.error('Error deleting category:', error);
-                alert('Failed to delete category');
+                alert('Failed to delete category: ' + error.message);
             }
         }
 
         function editCategory(category) {
             document.getElementById('editCategoryId').value = category.id;
             document.getElementById('editCategoryName').value = category.name ?? '';
-            const isIncome = category.type === true || category.type === 'true';
-            document.getElementById('editCategoryType').value = String(isIncome);
+            document.getElementById('editCategoryType').value = String(isIncome(category));
             document.getElementById('editCategoryDialog').showModal();
         }
 
@@ -270,7 +352,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 document.getElementById('editCategoryDialog').close();
@@ -278,7 +360,7 @@
                 alert('Category updated successfully!');
             } catch (error) {
                 console.error('Error updating category:', error);
-                alert('Failed to update category');
+                alert('Failed to update category: ' + error.message);
             }
         }
 

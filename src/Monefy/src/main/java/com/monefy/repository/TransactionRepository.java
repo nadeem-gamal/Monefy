@@ -9,4 +9,6 @@ import com.monefy.entity.Transaction;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     boolean existsByAccountId(int accountId);
+
+    boolean existsByCategoryId(int categoryId);
 }

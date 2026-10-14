@@ -35,10 +35,22 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             margin-bottom: 20px;
         }
-        .form-container input {
+        .form-container input,
+        .form-container select {
             margin-right: 10px;
             padding: 8px;
             border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .hint {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 13px;
+        }
+        .setup-hint {
+            padding: 10px 14px;
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
             border-radius: 4px;
         }
         dialog {
@@ -54,7 +66,8 @@
             display: block;
             margin: 12px 0 5px;
         }
-        .edit-form input {
+        .edit-form input,
+        .edit-form select {
             box-sizing: border-box;
             padding: 8px;
             width: 100%;
@@ -91,25 +104,29 @@
 <body>
     <h1>Transfer Management</h1>
 
+    <p id="setupHint" class="setup-hint" hidden>
+        You need at least two <a href="accounts.html">accounts</a> before you can make a transfer.
+    </p>
+
     <div class="form-container">
         <h3>Add New Transfer</h3>
-        <input type="number" id="transferAmount" placeholder="Amount" step="0.01" required>
+        <select id="fromAccount" required></select>
+        <select id="toAccount" required></select>
+        <input type="number" id="transferAmount" placeholder="Amount" step="0.01" min="0.01" required>
         <input type="date" id="transferDate" required>
-        <input type="number" id="fromAccountId" placeholder="From Account ID" required>
-        <input type="number" id="toAccountId" placeholder="To Account ID" required>
         <input type="text" id="transferDescription" placeholder="Description">
         <button onclick="addTransfer()">Add Transfer</button>
+        <p class="hint">From and To must be different accounts in the same currency.</p>
     </div>
 
     <h3>Transfers</h3>
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Amount</th>
                 <th>Date</th>
-                <th>From Account</th>
-                <th>To Account</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Amount</th>
                 <th>Description</th>
                 <th>Actions</th>
             </tr>
@@ -121,14 +138,14 @@
     <dialog id="editTransferDialog">
         <form id="editTransferForm" class="edit-form">
             <h3>Edit Transfer</h3>
+            <label for="editFromAccount">From Account</label>
+            <select id="editFromAccount" required></select>
+            <label for="editToAccount">To Account</label>
+            <select id="editToAccount" required></select>
             <label for="editTransferAmount">Amount</label>
-            <input type="number" id="editTransferAmount" step="0.01" required>
+            <input type="number" id="editTransferAmount" step="0.01" min="0.01" required>
             <label for="editTransferDate">Date</label>
             <input type="date" id="editTransferDate" required>
-            <label for="editFromAccountId">From Account ID</label>
-            <input type="number" id="editFromAccountId" required>
-            <label for="editToAccountId">To Account ID</label>
-            <input type="number" id="editToAccountId" required>
             <label for="editTransferDescription">Description</label>
             <input type="text" id="editTransferDescription">
             <div class="edit-form-actions">
@@ -140,60 +157,142 @@
 
     <script>
         const apiUrl = '/api/v3/transfers';
+        const accountsUrl = '/api/v3/account/getAll';
+
         let transfersCache = [];
         let editingTransfer = null;
+        let accountsById = {};
+
+        // Shows the server's own message (e.g. "Cannot transfer to the same account") instead of a bare status code
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
+
+        function accountLabel(account) {
+            return account.name || `Account ${account.id}`;
+        }
+
+        function accountName(id) {
+            const account = accountsById[id];
+            return account ? accountLabel(account) : `Account ${id}`;
+        }
+
+        function today() {
+            const now = new Date();
+            return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+
+        function fillSelect(select, accounts, placeholder) {
+            select.replaceChildren();
+            const first = document.createElement('option');
+            first.value = '';
+            first.textContent = placeholder;
+            select.appendChild(first);
+            accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = accountLabel(account);
+                select.appendChild(option);
+            });
+        }
+
+        async function loadAccounts() {
+            try {
+                const response = await fetch(accountsUrl);
+                if (!response.ok) throw new Error(await errorMessage(response));
+                const accounts = await response.json();
+
+                accountsById = {};
+                accounts.forEach(account => { accountsById[account.id] = account; });
+
+                ['fromAccount', 'editFromAccount'].forEach(id =>
+                    fillSelect(document.getElementById(id), accounts, 'From account'));
+                ['toAccount', 'editToAccount'].forEach(id =>
+                    fillSelect(document.getElementById(id), accounts, 'To account'));
+
+                document.getElementById('setupHint').hidden = accounts.length >= 2;
+            } catch (error) {
+                console.error('Error loading accounts:', error);
+                alert('Failed to load accounts: ' + error.message);
+            }
+        }
 
         async function fetchTransfers() {
             try {
                 const response = await fetch(apiUrl);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
                 const transfers = await response.json();
                 transfersCache = transfers;
                 displayTransfers(transfers);
             } catch (error) {
                 console.error('Error fetching transfers:', error);
-                alert('Failed to load transfers');
+                alert('Failed to load transfers: ' + error.message);
             }
+        }
+
+        function textCell(text) {
+            const cell = document.createElement('td');
+            cell.textContent = text;
+            return cell;
         }
 
         function displayTransfers(transfers) {
             const tableBody = document.getElementById('transferTableBody');
-            tableBody.innerHTML = '';
+            tableBody.replaceChildren();
 
-            transfers.forEach(transfer => {
+            // newest first
+            const sorted = [...transfers].sort((a, b) =>
+                String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+
+            sorted.forEach(transfer => {
+                const actionsCell = document.createElement('td');
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => editTransfer(transfer.id));
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-btn';
+                deleteButton.addEventListener('click', () => deleteTransfer(transfer.id));
+                actionsCell.append(editButton, deleteButton);
+
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${transfer.id}</td>
-                    <td>${transfer.amount}</td>
-                    <td>${transfer.date}</td>
-                    <td>${transfer.fromAccountId}</td>
-                    <td>${transfer.toAccountId}</td>
-                    <td>${transfer.description || 'N/A'}</td>
-                    <td>
-                        <button onclick="editTransfer(${transfer.id})">Edit</button>
-                        <button class="delete-btn" onclick="deleteTransfer(${transfer.id})">Delete</button>
-                    </td>
-                `;
+                row.append(
+                    textCell(String(transfer.date).slice(0, 10)),
+                    textCell(accountName(transfer.fromAccountId)),
+                    textCell(accountName(transfer.toAccountId)),
+                    textCell(Number(transfer.amount).toFixed(2)),
+                    textCell(transfer.description || ''),
+                    actionsCell
+                );
                 tableBody.appendChild(row);
             });
         }
 
         async function addTransfer() {
-            const amount = document.getElementById('transferAmount').value;
+            const amount = parseFloat(document.getElementById('transferAmount').value);
             const date = document.getElementById('transferDate').value;
-            const fromAccountId = document.getElementById('fromAccountId').value;
-            const toAccountId = document.getElementById('toAccountId').value;
+            const fromAccountId = document.getElementById('fromAccount').value;
+            const toAccountId = document.getElementById('toAccount').value;
             const description = document.getElementById('transferDescription').value.trim();
 
-            if (!amount || !date || !fromAccountId || !toAccountId) {
-                alert('Amount, Date, From Account ID, and To Account ID are required!');
+            if (!(amount > 0) || !date || !fromAccountId || !toAccountId) {
+                alert('From account, to account, date and an amount greater than zero are required!');
+                return;
+            }
+            if (fromAccountId === toAccountId) {
+                alert('From and To must be different accounts.');
                 return;
             }
 
             const newTransfer = {
-                amount: parseFloat(amount),
+                amount: amount,
                 date: date,
                 fromAccountId: parseInt(fromAccountId),
                 toAccountId: parseInt(toAccountId),
@@ -210,19 +309,16 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 document.getElementById('transferAmount').value = '';
-                document.getElementById('transferDate').value = '';
-                document.getElementById('fromAccountId').value = '';
-                document.getElementById('toAccountId').value = '';
                 document.getElementById('transferDescription').value = '';
-                fetchTransfers();
+                await fetchTransfers();
                 alert('Transfer added successfully!');
             } catch (error) {
                 console.error('Error adding transfer:', error);
-                alert('Failed to add transfer');
+                alert('Failed to add transfer: ' + error.message);
             }
         }
 
@@ -237,36 +333,49 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
-                fetchTransfers();
+                await fetchTransfers();
                 alert('Transfer deleted successfully!');
             } catch (error) {
                 console.error('Error deleting transfer:', error);
-                alert('Failed to delete transfer');
+                alert('Failed to delete transfer: ' + error.message);
             }
         }
 
         function editTransfer(id) {
             editingTransfer = transfersCache.find(transfer => transfer.id === id);
             if (!editingTransfer) return;
+            document.getElementById('editFromAccount').value = String(editingTransfer.fromAccountId);
+            document.getElementById('editToAccount').value = String(editingTransfer.toAccountId);
             document.getElementById('editTransferAmount').value = editingTransfer.amount;
             document.getElementById('editTransferDate').value = String(editingTransfer.date).slice(0, 10);
-            document.getElementById('editFromAccountId').value = editingTransfer.fromAccountId;
-            document.getElementById('editToAccountId').value = editingTransfer.toAccountId;
             document.getElementById('editTransferDescription').value = editingTransfer.description ?? '';
             document.getElementById('editTransferDialog').showModal();
         }
 
         async function updateTransfer(event) {
             event.preventDefault();
+            const fromAccountId = document.getElementById('editFromAccount').value;
+            const toAccountId = document.getElementById('editToAccount').value;
+            const amount = Number(document.getElementById('editTransferAmount').value);
+
+            if (!(amount > 0) || !fromAccountId || !toAccountId) {
+                alert('From account, to account and an amount greater than zero are required!');
+                return;
+            }
+            if (fromAccountId === toAccountId) {
+                alert('From and To must be different accounts.');
+                return;
+            }
+
             const transfer = {
                 ...editingTransfer,
-                amount: Number(document.getElementById('editTransferAmount').value),
+                amount: amount,
                 date: document.getElementById('editTransferDate').value,
-                fromAccountId: Number(document.getElementById('editFromAccountId').value),
-                toAccountId: Number(document.getElementById('editToAccountId').value),
+                fromAccountId: Number(fromAccountId),
+                toAccountId: Number(toAccountId),
                 description: document.getElementById('editTransferDescription').value.trim(),
             };
 
@@ -276,18 +385,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(transfer),
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(await errorMessage(response));
                 document.getElementById('editTransferDialog').close();
                 await fetchTransfers();
                 alert('Transfer updated successfully!');
             } catch (error) {
                 console.error('Error updating transfer:', error);
-                alert('Failed to update transfer');
+                alert('Failed to update transfer: ' + error.message);
             }
         }
 
         document.getElementById('editTransferForm').addEventListener('submit', updateTransfer);
-        document.addEventListener('DOMContentLoaded', fetchTransfers);
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('transferDate').value = today();
+            await loadAccounts();
+            fetchTransfers();
+        });
     </script>
 </body>
 </html>

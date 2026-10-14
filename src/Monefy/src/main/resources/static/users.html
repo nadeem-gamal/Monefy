@@ -131,17 +131,27 @@
         const apiUrl = '/api/v3/user';
         let editingUser = null;
 
+        // Shows the server's own message instead of a bare status code
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
+
         async function fetchUsers() {
             try {
                 const response = await fetch(apiUrl);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
                 const users = await response.json();
                 displayUsers(users);
             } catch (error) {
                 console.error('Error fetching users:', error);
-                alert('Failed to load users');
+                alert('Failed to load users: ' + error.message);
             }
         }
 
@@ -197,7 +207,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 usernameInput.value = '';
@@ -207,7 +217,7 @@
                 alert('User added successfully!');
             } catch (error) {
                 console.error('Error adding user:', error);
-                alert('Failed to add user');
+                alert('Failed to add user: ' + error.message);
             }
         }
 
@@ -222,14 +232,14 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
                 fetchUsers();
                 alert('User deleted successfully!');
             } catch (error) {
                 console.error('Error deleting user:', error);
-                alert('Failed to delete user');
+                alert('Failed to delete user: ' + error.message);
             }
         }
 
@@ -254,13 +264,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(user),
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(await errorMessage(response));
                 document.getElementById('editUserDialog').close();
                 await fetchUsers();
                 alert('User updated successfully!');
             } catch (error) {
                 console.error('Error updating user:', error);
-                alert('Failed to update user');
+                alert('Failed to update user: ' + error.message);
             }
         }
 
