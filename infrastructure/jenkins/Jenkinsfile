@@ -10,6 +10,6 @@ node {
     }
     stage('Results') {
         junit 'src/Monefy/target/surefire-reports/TEST-*.xml'
-        archiveArtifacts 'src/Monefy/target/*.jar'
+        // archiveArtifacts 'src/Monefy/target/*.jar'
     }
 }
