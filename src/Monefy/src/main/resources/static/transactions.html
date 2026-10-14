@@ -35,11 +35,31 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             margin-bottom: 20px;
         }
-        .form-container input {
+        .form-container input,
+        .form-container select {
             margin-right: 10px;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        .hint {
+            margin: 10px 0 0;
+            color: #666;
+            font-size: 13px;
+        }
+        .setup-hint {
+            padding: 10px 14px;
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 4px;
+        }
+        .amount-income {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .amount-expense {
+            color: #c62828;
+            font-weight: bold;
         }
         dialog {
             border: none;
@@ -54,7 +74,8 @@
             display: block;
             margin: 12px 0 5px;
         }
-        .edit-form input {
+        .edit-form input,
+        .edit-form select {
             box-sizing: border-box;
             padding: 8px;
             width: 100%;
@@ -86,30 +107,36 @@
             background-color: #da190b;
         }
     </style>
+    <script src="nav.js" defer></script>
 </head>
 <body>
     <h1>Transaction Management</h1>
 
+    <p id="setupHint" class="setup-hint" hidden>
+        Create at least one <a href="accounts.html">account</a> and one
+        <a href="categories.html">category</a> before adding transactions.
+    </p>
+
     <div class="form-container">
         <h3>Add New Transaction</h3>
-        <input type="number" id="transactionAmount" placeholder="Amount" step="0.01" required>
+        <select id="transactionAccount" required></select>
+        <select id="transactionCategory" required></select>
+        <input type="number" id="transactionAmount" placeholder="Amount" step="0.01" min="0.01" required>
         <input type="date" id="transactionDate" required>
         <input type="text" id="transactionDescription" placeholder="Description">
-        <input type="number" id="transactionAccountId" placeholder="Account ID" required>
-        <input type="number" id="transactionCategoryId" placeholder="Category ID" required>
         <button onclick="addTransaction()">Add Transaction</button>
+        <p class="hint">Enter a positive amount. The category decides whether it is income (added to the account) or an expense (taken from it).</p>
     </div>
 
     <h3>Transactions</h3>
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Amount</th>
                 <th>Date</th>
+                <th>Category</th>
+                <th>Account</th>
+                <th>Amount</th>
                 <th>Description</th>
-                <th>Account ID</th>
-                <th>Category ID</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -120,16 +147,16 @@
     <dialog id="editTransactionDialog">
         <form id="editTransactionForm" class="edit-form">
             <h3>Edit Transaction</h3>
+            <label for="editTransactionAccount">Account</label>
+            <select id="editTransactionAccount" required></select>
+            <label for="editTransactionCategory">Category</label>
+            <select id="editTransactionCategory" required></select>
             <label for="editTransactionAmount">Amount</label>
-            <input type="number" id="editTransactionAmount" step="0.01" required>
+            <input type="number" id="editTransactionAmount" step="0.01" min="0.01" required>
             <label for="editTransactionDate">Date</label>
             <input type="date" id="editTransactionDate" required>
             <label for="editTransactionDescription">Description</label>
             <input type="text" id="editTransactionDescription">
-            <label for="editTransactionAccountId">Account ID</label>
-            <input type="number" id="editTransactionAccountId" required>
-            <label for="editTransactionCategoryId">Category ID</label>
-            <input type="number" id="editTransactionCategoryId" required>
             <div class="edit-form-actions">
                 <button type="button" class="cancel-btn" onclick="document.getElementById('editTransactionDialog').close()">Cancel</button>
                 <button type="submit">Save</button>
@@ -139,60 +166,170 @@
 
     <script>
         const apiUrl = '/api/v3/transaction';
+        const accountsUrl = '/api/v3/account/getAll';
+        const categoriesUrl = '/api/v3/category/getAll';
+
         let transactionsCache = [];
         let editingTransaction = null;
+        let accountsById = {};
+        let categoriesById = {};
+
+        // Shows the server's own message (e.g. "Category not found: 9") instead of a bare status code
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
+
+        function isIncome(category) {
+            return !!category && (category.type === true || category.type === 'true');
+        }
+
+        // Amounts are stored signed: income is positive, expense is negative.
+        // The form takes a positive number and the category decides the sign.
+        function signedAmount(amount, categoryId) {
+            const magnitude = Math.abs(amount);
+            return isIncome(categoriesById[categoryId]) ? magnitude : -magnitude;
+        }
+
+        function accountLabel(account) {
+            return account.name || `Account ${account.id}`;
+        }
+
+        function categoryLabel(category) {
+            return `${category.name || `Category ${category.id}`} (${isIncome(category) ? 'Income' : 'Expense'})`;
+        }
+
+        function today() {
+            const now = new Date();
+            return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        }
+
+        function fillSelect(select, items, placeholder, label) {
+            select.replaceChildren();
+            const first = document.createElement('option');
+            first.value = '';
+            first.textContent = placeholder;
+            select.appendChild(first);
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = label(item);
+                select.appendChild(option);
+            });
+        }
+
+        async function loadLookups() {
+            try {
+                const [accountsResponse, categoriesResponse] = await Promise.all([
+                    fetch(accountsUrl),
+                    fetch(categoriesUrl)
+                ]);
+                if (!accountsResponse.ok || !categoriesResponse.ok) {
+                    throw new Error('Could not load accounts or categories');
+                }
+                const accounts = await accountsResponse.json();
+                const categories = await categoriesResponse.json();
+
+                accountsById = {};
+                categoriesById = {};
+                accounts.forEach(account => { accountsById[account.id] = account; });
+                categories.forEach(category => { categoriesById[category.id] = category; });
+
+                ['transactionAccount', 'editTransactionAccount'].forEach(id => {
+                    fillSelect(document.getElementById(id), accounts, 'Select account', accountLabel);
+                });
+                ['transactionCategory', 'editTransactionCategory'].forEach(id => {
+                    fillSelect(document.getElementById(id), categories, 'Select category', categoryLabel);
+                });
+
+                document.getElementById('setupHint').hidden = accounts.length > 0 && categories.length > 0;
+            } catch (error) {
+                console.error('Error loading accounts and categories:', error);
+                alert('Failed to load accounts and categories');
+            }
+        }
 
         async function fetchTransactions() {
             try {
                 const response = await fetch(apiUrl);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
                 const transactions = await response.json();
                 transactionsCache = transactions;
                 displayTransactions(transactions);
             } catch (error) {
                 console.error('Error fetching transactions:', error);
-                alert('Failed to load transactions');
+                alert('Failed to load transactions: ' + error.message);
             }
+        }
+
+        function textCell(text) {
+            const cell = document.createElement('td');
+            cell.textContent = text;
+            return cell;
+        }
+
+        function amountCell(amount) {
+            const cell = document.createElement('td');
+            cell.className = amount >= 0 ? 'amount-income' : 'amount-expense';
+            cell.textContent = (amount > 0 ? '+' : '') + Number(amount).toFixed(2);
+            return cell;
         }
 
         function displayTransactions(transactions) {
             const tableBody = document.getElementById('transactionTableBody');
-            tableBody.innerHTML = '';
+            tableBody.replaceChildren();
 
-            transactions.forEach(transaction => {
+            // newest first
+            const sorted = [...transactions].sort((a, b) =>
+                String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+
+            sorted.forEach(transaction => {
+                const category = categoriesById[transaction.categoryId];
+                const account = accountsById[transaction.accountId];
+
+                const actionsCell = document.createElement('td');
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => editTransaction(transaction.id));
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-btn';
+                deleteButton.addEventListener('click', () => deleteTransaction(transaction.id));
+                actionsCell.append(editButton, deleteButton);
+
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${transaction.id}</td>
-                    <td>${transaction.amount}</td>
-                    <td>${transaction.date}</td>
-                    <td>${transaction.description || 'N/A'}</td>
-                    <td>${transaction.accountId}</td>
-                    <td>${transaction.categoryId}</td>
-                    <td>
-                        <button onclick="editTransaction(${transaction.id})">Edit</button>
-                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})">Delete</button>
-                    </td>
-                `;
+                row.append(
+                    textCell(String(transaction.date).slice(0, 10)),
+                    textCell(category ? (category.name || `Category ${category.id}`) : `Category ${transaction.categoryId}`),
+                    textCell(account ? accountLabel(account) : `Account ${transaction.accountId}`),
+                    amountCell(transaction.amount),
+                    textCell(transaction.description || ''),
+                    actionsCell
+                );
                 tableBody.appendChild(row);
             });
         }
 
         async function addTransaction() {
-            const amount = document.getElementById('transactionAmount').value;
+            const amount = parseFloat(document.getElementById('transactionAmount').value);
             const date = document.getElementById('transactionDate').value;
             const description = document.getElementById('transactionDescription').value.trim();
-            const accountId = document.getElementById('transactionAccountId').value;
-            const categoryId = document.getElementById('transactionCategoryId').value;
+            const accountId = document.getElementById('transactionAccount').value;
+            const categoryId = document.getElementById('transactionCategory').value;
 
-            if (!amount || !date || !accountId || !categoryId) {
-                alert('Amount, Date, Account ID, and Category ID are required!');
+            if (!(amount > 0) || !date || !accountId || !categoryId) {
+                alert('Account, category, date and an amount greater than zero are required!');
                 return;
             }
 
             const newTransaction = {
-                amount: parseFloat(amount),
+                amount: signedAmount(amount, categoryId),
                 date: date,
                 description: description,
                 accountId: parseInt(accountId),
@@ -209,19 +346,17 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
+                // keep account, category and date so several transactions can be entered in a row
                 document.getElementById('transactionAmount').value = '';
-                document.getElementById('transactionDate').value = '';
                 document.getElementById('transactionDescription').value = '';
-                document.getElementById('transactionAccountId').value = '';
-                document.getElementById('transactionCategoryId').value = '';
-                fetchTransactions();
+                await fetchTransactions();
                 alert('Transaction added successfully!');
             } catch (error) {
                 console.error('Error adding transaction:', error);
-                alert('Failed to add transaction');
+                alert('Failed to add transaction: ' + error.message);
             }
         }
 
@@ -236,37 +371,46 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(await errorMessage(response));
                 }
 
-                fetchTransactions();
+                await fetchTransactions();
                 alert('Transaction deleted successfully!');
             } catch (error) {
                 console.error('Error deleting transaction:', error);
-                alert('Failed to delete transaction');
+                alert('Failed to delete transaction: ' + error.message);
             }
         }
 
         function editTransaction(id) {
             editingTransaction = transactionsCache.find(transaction => transaction.id === id);
             if (!editingTransaction) return;
-            document.getElementById('editTransactionAmount').value = editingTransaction.amount;
+            document.getElementById('editTransactionAccount').value = String(editingTransaction.accountId);
+            document.getElementById('editTransactionCategory').value = String(editingTransaction.categoryId);
+            document.getElementById('editTransactionAmount').value = Math.abs(editingTransaction.amount);
             document.getElementById('editTransactionDate').value = String(editingTransaction.date).slice(0, 10);
             document.getElementById('editTransactionDescription').value = editingTransaction.description ?? '';
-            document.getElementById('editTransactionAccountId').value = editingTransaction.accountId;
-            document.getElementById('editTransactionCategoryId').value = editingTransaction.categoryId;
             document.getElementById('editTransactionDialog').showModal();
         }
 
         async function updateTransaction(event) {
             event.preventDefault();
+            const amount = parseFloat(document.getElementById('editTransactionAmount').value);
+            const accountId = document.getElementById('editTransactionAccount').value;
+            const categoryId = document.getElementById('editTransactionCategory').value;
+
+            if (!(amount > 0) || !accountId || !categoryId) {
+                alert('Account, category and an amount greater than zero are required!');
+                return;
+            }
+
             const transaction = {
                 ...editingTransaction,
-                amount: Number(document.getElementById('editTransactionAmount').value),
+                amount: signedAmount(amount, categoryId),
                 date: document.getElementById('editTransactionDate').value,
                 description: document.getElementById('editTransactionDescription').value.trim(),
-                accountId: Number(document.getElementById('editTransactionAccountId').value),
-                categoryId: Number(document.getElementById('editTransactionCategoryId').value),
+                accountId: parseInt(accountId),
+                categoryId: parseInt(categoryId),
             };
 
             try {
@@ -275,18 +419,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(transaction),
                 });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) throw new Error(await errorMessage(response));
                 document.getElementById('editTransactionDialog').close();
                 await fetchTransactions();
                 alert('Transaction updated successfully!');
             } catch (error) {
                 console.error('Error updating transaction:', error);
-                alert('Failed to update transaction');
+                alert('Failed to update transaction: ' + error.message);
             }
         }
 
         document.getElementById('editTransactionForm').addEventListener('submit', updateTransaction);
-        document.addEventListener('DOMContentLoaded', fetchTransactions);
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('transactionDate').value = today();
+            await loadLookups();
+            fetchTransactions();
+        });
     </script>
 </body>
 </html>
