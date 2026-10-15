@@ -185,6 +185,12 @@
             align-items: center;
             flex-wrap: wrap;
         }
+        .feed-details.column {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0 0 6px 0;
+            gap: 0;
+        }
         .feed-item.expanded .feed-details {
             display: flex;
         }
@@ -197,6 +203,54 @@
         .feed-details button {
             font-size: 12px;
             padding: 5px 10px;
+        }
+        .category-count {
+            color: #888;
+            font-size: 12px;
+            font-weight: normal;
+            margin-left: 6px;
+        }
+        .tx-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 4px 8px 28px;
+            border-top: 1px dashed #eee;
+        }
+        .tx-date {
+            width: 80px;
+            color: #888;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .tx-description {
+            flex: 1;
+            min-width: 0;
+            color: #555;
+            font-size: 13px;
+        }
+        .tx-amount {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tx-amount.income { color: #2e7d32; }
+        .tx-amount.expense { color: #c62828; }
+        .tx-row button {
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+        .section-title2 {
+            padding: 10px 4px 6px;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-top: 1px solid #eee;
+            margin-top: 4px;
+        }
+        #feedList > .section-title2:first-child {
+            border-top: none;
+            margin-top: 0;
         }
         .delete-btn {
             background-color: #f44336;
@@ -557,7 +611,12 @@
                 currencies.forEach(c => { currenciesById[c.id] = c; });
 
                 const filterAccount = document.getElementById('filterAccount');
+                const previousSelection = filterAccount.value;
                 fillSelect(filterAccount, accounts, 'All Accounts', accountLabel, true);
+                // keep whichever account was selected, as long as it still exists
+                if (previousSelection && accounts.some(a => String(a.id) === previousSelection)) {
+                    filterAccount.value = previousSelection;
+                }
 
                 ['txAccount', 'xferFrom', 'xferTo'].forEach(id =>
                     fillSelect(document.getElementById(id), accounts, 'Select account', accountLabel, true));
@@ -658,11 +717,12 @@
             if (item) item.classList.toggle('expanded');
         }
 
-        function buildTransactionItem(transaction) {
-            const key = `t-${transaction.id}`;
-            const category = categoriesById[transaction.categoryId];
-            const account = accountsById[transaction.accountId];
-            const income = transaction.amount >= 0;
+        function buildCategoryGroup(categoryId, transactions) {
+            const key = `cat-${categoryId}`;
+            const category = categoriesById[categoryId];
+            const income = isIncome(category);
+            const total = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+            const showAccount = !document.getElementById('filterAccount').value;
 
             const item = document.createElement('div');
             item.className = 'feed-item' + (expandedKeys.has(key) ? ' expanded' : '');
@@ -672,10 +732,6 @@
             row.className = 'feed-row';
             row.addEventListener('click', () => toggleExpanded(key));
 
-            const dateCell = document.createElement('div');
-            dateCell.className = 'feed-date';
-            dateCell.textContent = String(transaction.date).slice(0, 10);
-
             const dot = document.createElement('span');
             dot.className = 'feed-kind-dot ' + (income ? 'dot-income' : 'dot-expense');
 
@@ -683,27 +739,59 @@
             label.className = 'feed-label';
             const primary = document.createElement('div');
             primary.className = 'primary';
-            primary.textContent = categoryLabel(category, transaction.categoryId);
+            primary.textContent = categoryLabel(category, categoryId);
+            const count = document.createElement('span');
+            count.className = 'category-count';
+            count.textContent = `${transactions.length} transaction${transactions.length === 1 ? '' : 's'}`;
+            primary.appendChild(count);
             label.appendChild(primary);
-            if (!document.getElementById('filterAccount').value) {
-                const secondary = document.createElement('div');
-                secondary.className = 'secondary';
-                secondary.textContent = accountLabel(account);
-                label.appendChild(secondary);
-            }
+
+            const currencyIds = new Set(transactions.map(t => {
+                const account = accountsById[t.accountId];
+                return account ? account.currency : null;
+            }));
+            const commonCurrency = currencyIds.size === 1 ? [...currencyIds][0] : null;
 
             const amount = document.createElement('div');
             amount.className = 'feed-amount ' + (income ? 'income' : 'expense');
-            amount.textContent = (income ? '+' : '') + Number(transaction.amount).toFixed(2)
-                + ' ' + (account ? currencySymbol(account.currency) : '');
+            amount.textContent = (income ? '+' : '') + total.toFixed(2)
+                + (commonCurrency ? ' ' + currencySymbol(commonCurrency) : '');
 
-            row.append(dateCell, dot, label, amount);
+            row.append(dot, label, amount);
 
             const details = document.createElement('div');
-            details.className = 'feed-details';
+            details.className = 'feed-details column';
+            const sorted = [...transactions].sort((a, b) =>
+                String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+            sorted.forEach(transaction => details.appendChild(buildTxRow(transaction, income, showAccount)));
+
+            item.append(row, details);
+            return item;
+        }
+
+        function buildTxRow(transaction, income, showAccount) {
+            const account = accountsById[transaction.accountId];
+
+            const row = document.createElement('div');
+            row.className = 'tx-row';
+
+            const date = document.createElement('div');
+            date.className = 'tx-date';
+            date.textContent = String(transaction.date).slice(0, 10);
+
             const description = document.createElement('div');
-            description.className = 'description';
-            description.textContent = transaction.description || '';
+            description.className = 'tx-description';
+            let text = transaction.description || '(no description)';
+            if (showAccount) {
+                text += ` \u2022 ${accountLabel(account)}`;
+            }
+            description.textContent = text;
+
+            const amount = document.createElement('div');
+            amount.className = 'tx-amount ' + (income ? 'income' : 'expense');
+            amount.textContent = (income ? '+' : '') + Number(transaction.amount).toFixed(2)
+                + (account ? ' ' + currencySymbol(account.currency) : '');
+
             const editButton = document.createElement('button');
             editButton.type = 'button';
             editButton.textContent = 'Edit';
@@ -711,6 +799,7 @@
                 event.stopPropagation();
                 openTransactionDialog(income, transaction);
             });
+
             const deleteButton = document.createElement('button');
             deleteButton.type = 'button';
             deleteButton.className = 'delete-btn';
@@ -719,16 +808,28 @@
                 event.stopPropagation();
                 deleteTransaction(transaction.id);
             });
-            details.append(description, editButton, deleteButton);
 
-            item.append(row, details);
-            return item;
+            row.append(date, description, amount, editButton, deleteButton);
+            return row;
         }
 
         function buildTransferItem(transfer) {
             const key = `x-${transfer.id}`;
             const fromAccount = accountsById[transfer.fromAccountId];
             const toAccount = accountsById[transfer.toAccountId];
+            const filterAccountId = document.getElementById('filterAccount').value;
+
+            // When the feed is filtered to one account, describe the transfer from that
+            // account's point of view (money coming in, or money going out) instead of
+            // always showing the neutral "A → B" form.
+            let perspective = 'neutral';
+            if (filterAccountId) {
+                if (String(transfer.toAccountId) === filterAccountId) {
+                    perspective = 'incoming';
+                } else if (String(transfer.fromAccountId) === filterAccountId) {
+                    perspective = 'outgoing';
+                }
+            }
 
             const item = document.createElement('div');
             item.className = 'feed-item' + (expandedKeys.has(key) ? ' expanded' : '');
@@ -749,17 +850,35 @@
             label.className = 'feed-label';
             const primary = document.createElement('div');
             primary.className = 'primary';
-            primary.textContent = `${accountLabel(fromAccount)} \u2192 ${accountLabel(toAccount)}`;
-            label.appendChild(primary);
             const secondary = document.createElement('div');
             secondary.className = 'secondary';
-            secondary.textContent = 'Transfer';
-            label.appendChild(secondary);
+            const route = `${accountLabel(fromAccount)} \u2192 ${accountLabel(toAccount)}`;
+            if (perspective === 'incoming') {
+                primary.textContent = `From ${accountLabel(fromAccount)}`;
+                secondary.textContent = route;
+            } else if (perspective === 'outgoing') {
+                primary.textContent = `To ${accountLabel(toAccount)}`;
+                secondary.textContent = route;
+            } else {
+                primary.textContent = route;
+                secondary.textContent = 'Transfer';
+            }
+            label.append(primary, secondary);
 
             const amount = document.createElement('div');
-            amount.className = 'feed-amount transfer';
-            amount.textContent = Number(transfer.amount).toFixed(2)
-                + ' ' + (fromAccount ? currencySymbol(fromAccount.currency) : '');
+            if (perspective === 'incoming') {
+                amount.className = 'feed-amount income';
+                amount.textContent = '+' + Number(transfer.amount).toFixed(2)
+                    + ' ' + (toAccount ? currencySymbol(toAccount.currency) : '');
+            } else if (perspective === 'outgoing') {
+                amount.className = 'feed-amount expense';
+                amount.textContent = '-' + Number(transfer.amount).toFixed(2)
+                    + ' ' + (fromAccount ? currencySymbol(fromAccount.currency) : '');
+            } else {
+                amount.className = 'feed-amount transfer';
+                amount.textContent = Number(transfer.amount).toFixed(2)
+                    + ' ' + (fromAccount ? currencySymbol(fromAccount.currency) : '');
+            }
 
             row.append(dateCell, dot, label, amount);
 
@@ -767,7 +886,7 @@
             details.className = 'feed-details';
             const description = document.createElement('div');
             description.className = 'description';
-            description.textContent = transfer.description || '';
+            description.textContent = route + (transfer.description ? ` \u2022 ${transfer.description}` : '');
             const editButton = document.createElement('button');
             editButton.type = 'button';
             editButton.textContent = 'Edit';
@@ -793,12 +912,7 @@
             const list = document.getElementById('feedList');
             list.replaceChildren();
 
-            const merged = [
-                ...transactions.map(t => ({ kind: 'transaction', date: t.date, id: t.id, data: t })),
-                ...transfers.map(t => ({ kind: 'transfer', date: t.date, id: t.id, data: t }))
-            ].sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
-
-            if (merged.length === 0) {
+            if (transactions.length === 0 && transfers.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'empty-state';
                 empty.textContent = 'Nothing in this period yet.';
@@ -806,12 +920,46 @@
                 return;
             }
 
-            merged.forEach(entry => {
-                const item = entry.kind === 'transaction'
-                    ? buildTransactionItem(entry.data)
-                    : buildTransferItem(entry.data);
-                list.appendChild(item);
+            const incomeGroups = {};
+            const expenseGroups = {};
+            transactions.forEach(transaction => {
+                const target = isIncome(categoriesById[transaction.categoryId]) ? incomeGroups : expenseGroups;
+                const key = transaction.categoryId;
+                if (!target[key]) target[key] = [];
+                target[key].push(transaction);
             });
+
+            // biggest category first, by total absolute amount
+            function sortedCategoryIds(groups) {
+                return Object.keys(groups).sort((a, b) => {
+                    const totalA = Math.abs(groups[a].reduce((sum, t) => sum + Number(t.amount), 0));
+                    const totalB = Math.abs(groups[b].reduce((sum, t) => sum + Number(t.amount), 0));
+                    return totalB - totalA;
+                });
+            }
+
+            function appendSection(title, groups) {
+                const categoryIds = sortedCategoryIds(groups);
+                if (categoryIds.length === 0) return;
+                const header = document.createElement('div');
+                header.className = 'section-title2';
+                header.textContent = title;
+                list.appendChild(header);
+                categoryIds.forEach(categoryId => list.appendChild(buildCategoryGroup(categoryId, groups[categoryId])));
+            }
+
+            appendSection('Income by Category', incomeGroups);
+            appendSection('Expenses by Category', expenseGroups);
+
+            if (transfers.length > 0) {
+                const header = document.createElement('div');
+                header.className = 'section-title2';
+                header.textContent = 'Transfers';
+                list.appendChild(header);
+                [...transfers]
+                    .sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id)
+                    .forEach(transfer => list.appendChild(buildTransferItem(transfer)));
+            }
         }
 
         // ---- transaction dialog (add expense / add income / edit) ----
