@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .panel {
+            background-color: white;
+            padding: 16px 20px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            margin-bottom: 16px;
+        }
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        select, input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .interval-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            background-color: #eee;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .interval-group button {
+            background: transparent;
+            color: #444;
+            padding: 7px 12px;
+            font-size: 13px;
+        }
+        .interval-group button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .custom-range {
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        .custom-range.visible {
+            display: flex;
+        }
+        .range-label {
+            font-size: 13px;
+            color: #666;
+            align-self: center;
+        }
+        .period-nav {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        .period-nav.visible {
+            display: flex;
+        }
+        .period-nav button {
+            background-color: #eee;
+            color: #444;
+            padding: 6px 12px;
+            font-size: 15px;
+            line-height: 1;
+        }
+        .period-nav button:hover {
+            background-color: #ddd;
+        }
+        .period-label {
+            font-weight: 600;
+            min-width: 140px;
+            text-align: center;
+        }
+        .details-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .details-bar .balance {
+            font-size: 26px;
+            font-weight: bold;
+        }
+        .balance.positive { color: #2e7d32; }
+        .balance.negative { color: #c62828; }
+        .details-bar .meta {
+            color: #666;
+            font-size: 13px;
+        }
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .quick-actions button {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-expense { background-color: #c62828; }
+        .btn-expense:hover { background-color: #a92121; }
+        .btn-income { background-color: #2e7d32; }
+        .btn-income:hover { background-color: #256428; }
+        .btn-transfer { background-color: #1565c0; }
+        .btn-transfer:hover { background-color: #114f99; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .feed-item {
+            border-bottom: 1px solid #eee;
+        }
+        .feed-item:last-child {
+            border-bottom: none;
+        }
+        .feed-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 4px;
+            cursor: pointer;
+        }
+        .feed-row:hover {
+            background-color: #fafafa;
+        }
+        .feed-date {
+            width: 90px;
+            color: #888;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .feed-kind-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-income { background-color: #2e7d32; }
+        .dot-expense { background-color: #c62828; }
+        .dot-transfer { background-color: #1565c0; }
+        .feed-label {
+            flex: 1;
+            min-width: 0;
+        }
+        .feed-label .primary {
+            font-weight: 600;
+        }
+        .feed-label .secondary {
+            color: #888;
+            font-size: 12px;
+        }
+        .feed-amount {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .feed-amount.income { color: #2e7d32; }
+        .feed-amount.expense { color: #c62828; }
+        .feed-amount.transfer { color: #1565c0; }
+        .feed-details {
+            display: none;
+            padding: 0 4px 14px 101px;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .feed-item.expanded .feed-details {
+            display: flex;
+        }
+        .feed-details .description {
+            color: #555;
+            font-size: 13px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .feed-details button {
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        .delete-btn {
+            background-color: #f44336;
+        }
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+        .empty-state {
+            padding: 30px;
+            text-align: center;
+            color: #888;
+        }
+        .setup-hint {
+            padding: 10px 14px;
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+        dialog {
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            min-width: 320px;
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .edit-form label {
+            display: block;
+            margin: 12px 0 5px;
+        }
+        .edit-form input,
+        .edit-form select {
+            box-sizing: border-box;
+            padding: 8px;
+            width: 100%;
+        }
+        .edit-form-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .cancel-btn {
+            background-color: #777;
+        }
+    </style>
+    <script src="nav.js" defer></script>
+</head>
+<body>
+    <h1>Activity</h1>
+
+    <p id="setupHint" class="setup-hint" hidden>
+        Create at least one <a href="accounts.html">account</a> and one
+        <a href="categories.html">category</a> to start adding transactions.
+    </p>
+
+    <div class="panel">
+        <div class="controls-row">
+            <select id="filterAccount"></select>
+
+            <div class="interval-group" id="intervalGroup">
+                <button type="button" data-interval="day">Day</button>
+                <button type="button" data-interval="week">Week</button>
+                <button type="button" data-interval="month">Month</button>
+                <button type="button" data-interval="year">Year</button>
+                <button type="button" data-interval="all" class="active">All</button>
+                <button type="button" data-interval="custom">Choose date</button>
+            </div>
+
+            <div class="custom-range" id="customRange">
+                <span class="range-label">From</span>
+                <input type="date" id="customFrom">
+                <span class="range-label">To</span>
+                <input type="date" id="customTo">
+                <button type="button" onclick="applyCustomRange()">Apply</button>
+            </div>
+
+            <div class="period-nav" id="periodNav">
+                <button type="button" onclick="shiftPeriod(-1)">&#8249;</button>
+                <span class="period-label" id="periodLabel"></span>
+                <button type="button" onclick="shiftPeriod(1)">&#8250;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="details-bar" id="detailsBar"></div>
+    </div>
+
+    <div class="panel">
+        <div class="quick-actions">
+            <button type="button" class="btn-expense" onclick="openTransactionDialog(false)">&minus; Expense</button>
+            <button type="button" class="btn-income" onclick="openTransactionDialog(true)">+ Income</button>
+            <button type="button" class="btn-transfer" onclick="openTransferDialog()">&#8644; Transfer</button>
+        </div>
+    </div>
+
+    <div class="panel" style="padding: 0;">
+        <div id="feedList"></div>
+    </div>
+
+    <dialog id="transactionDialog">
+        <form id="transactionForm" class="edit-form">
+            <h3 id="transactionDialogTitle">Add Expense</h3>
+            <input type="hidden" id="txId">
+            <input type="hidden" id="txIsIncome">
+            <label for="txAccount">Account</label>
+            <select id="txAccount" required></select>
+            <label for="txCategory">Category</label>
+            <select id="txCategory" required></select>
+            <label for="txAmount">Amount</label>
+            <input type="number" id="txAmount" step="0.01" min="0.01" required>
+            <label for="txDate">Date</label>
+            <input type="date" id="txDate" required>
+            <label for="txDescription">Description</label>
+            <input type="text" id="txDescription">
+            <div class="edit-form-actions">
+                <button type="button" class="cancel-btn" onclick="document.getElementById('transactionDialog').close()">Cancel</button>
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="transferDialog">
+        <form id="transferForm" class="edit-form">
+            <h3 id="transferDialogTitle">Add Transfer</h3>
+            <input type="hidden" id="xferId">
+            <label for="xferFrom">From Account</label>
+            <select id="xferFrom" required></select>
+            <label for="xferTo">To Account</label>
+            <select id="xferTo" required></select>
+            <label for="xferAmount">Amount</label>
+            <input type="number" id="xferAmount" step="0.01" min="0.01" required>
+            <label for="xferDate">Date</label>
+            <input type="date" id="xferDate" required>
+            <label for="xferDescription">Description</label>
+            <input type="text" id="xferDescription">
+            <div class="edit-form-actions">
+                <button type="button" class="cancel-btn" onclick="document.getElementById('transferDialog').close()">Cancel</button>
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>
+        const transactionApiUrl = '/api/v3/transaction';
+        const transferApiUrl = '/api/v3/transfers';
+        const accountsUrl = '/api/v3/account/getAll';
+        const categoriesUrl = '/api/v3/category/getAll';
+        const currenciesUrl = '/api/v3/currency/getAll';
+
+        let accountsById = {};
+        let categoriesById = {};
+        let currenciesById = {};
+        let expandedKeys = new Set();
+
+        let interval = 'all';
+        let anchorDate = new Date();
+        let customFrom = null;
+        let customTo = null;
+
+        // ---- helpers ----
+
+        async function errorMessage(response) {
+            try {
+                const body = await response.json();
+                return body.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                return `HTTP error! status: ${response.status}`;
+            }
+        }
+
+        function isIncome(category) {
+            return !!category && (category.type === true || category.type === 'true');
+        }
+
+        function signedAmount(amount, categoryId) {
+            const magnitude = Math.abs(amount);
+            return isIncome(categoriesById[categoryId]) ? magnitude : -magnitude;
+        }
+
+        function accountLabel(account) {
+            return account ? (account.name || `Account ${account.id}`) : 'Unknown account';
+        }
+
+        function currencySymbol(currencyId) {
+            const currency = currenciesById[currencyId];
+            return currency ? (currency.symbol || currency.name) : '';
+        }
+
+        function categoryLabel(category, categoryId) {
+            return category ? (category.name || `Category ${categoryId}`) : `Category ${categoryId}`;
+        }
+
+        function toDateInput(date) {
+            const now = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return now.toISOString().slice(0, 10);
+        }
+
+        function today() {
+            return toDateInput(new Date());
+        }
+
+        function fillSelect(select, items, placeholder, label, includePlaceholder) {
+            select.replaceChildren();
+            if (includePlaceholder) {
+                const first = document.createElement('option');
+                first.value = '';
+                first.textContent = placeholder;
+                select.appendChild(first);
+            }
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = label(item);
+                select.appendChild(option);
+            });
+        }
+
+        // ---- interval computation ----
+
+        function startOfWeek(date) {
+            const result = new Date(date);
+            const day = (result.getDay() + 1) % 7; // Saturday = 0
+            result.setDate(result.getDate() - day);
+            return result;
+        }
+
+        function endOfWeek(date) {
+            const result = startOfWeek(date);
+            result.setDate(result.getDate() + 6);
+            return result;
+        }
+
+        function computeRange() {
+            switch (interval) {
+                case 'day':
+                    return { from: toDateInput(anchorDate), to: toDateInput(anchorDate) };
+                case 'week':
+                    return { from: toDateInput(startOfWeek(anchorDate)), to: toDateInput(endOfWeek(anchorDate)) };
+                case 'month': {
+                    const from = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+                    const to = new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0);
+                    return { from: toDateInput(from), to: toDateInput(to) };
+                }
+                case 'year': {
+                    const from = new Date(anchorDate.getFullYear(), 0, 1);
+                    const to = new Date(anchorDate.getFullYear(), 11, 31);
+                    return { from: toDateInput(from), to: toDateInput(to) };
+                }
+                case 'custom':
+                    return { from: customFrom, to: customTo };
+                default:
+                    return { from: null, to: null };
+            }
+        }
+
+        function formatPeriodLabel() {
+            switch (interval) {
+                case 'day':
+                    return anchorDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+                case 'week': {
+                    const start = startOfWeek(anchorDate);
+                    const end = endOfWeek(anchorDate);
+                    const startText = start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+                    const endText = end.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+                    return `${startText} – ${endText}`;
+                }
+                case 'month':
+                    return anchorDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                case 'year':
+                    return String(anchorDate.getFullYear());
+                default:
+                    return '';
+            }
+        }
+
+        function updatePeriodNav() {
+            const hasPeriod = ['day', 'week', 'month', 'year'].includes(interval);
+            document.getElementById('periodNav').classList.toggle('visible', hasPeriod);
+            if (hasPeriod) {
+                document.getElementById('periodLabel').textContent = formatPeriodLabel();
+            }
+        }
+
+        function shiftPeriod(delta) {
+            switch (interval) {
+                case 'day':
+                    anchorDate.setDate(anchorDate.getDate() + delta);
+                    break;
+                case 'week':
+                    anchorDate.setDate(anchorDate.getDate() + delta * 7);
+                    break;
+                case 'month':
+                    anchorDate.setMonth(anchorDate.getMonth() + delta);
+                    break;
+                case 'year':
+                    anchorDate.setFullYear(anchorDate.getFullYear() + delta);
+                    break;
+                default:
+                    return;
+            }
+            updatePeriodNav();
+            loadFeed();
+        }
+
+        function setInterval_(value) {
+            interval = value;
+            if (['day', 'week', 'month', 'year'].includes(value)) {
+                anchorDate = new Date();
+            }
+            document.querySelectorAll('#intervalGroup button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.interval === value);
+            });
+            document.getElementById('customRange').classList.toggle('visible', value === 'custom');
+            updatePeriodNav();
+            if (value !== 'custom') {
+                loadFeed();
+            }
+        }
+
+        function applyCustomRange() {
+            customFrom = document.getElementById('customFrom').value || null;
+            customTo = document.getElementById('customTo').value || null;
+            if (customFrom && customTo && customFrom > customTo) {
+                alert("'From' date must not be after 'To' date.");
+                return;
+            }
+            loadFeed();
+        }
+
+        document.getElementById('intervalGroup').addEventListener('click', event => {
+            const button = event.target.closest('button[data-interval]');
+            if (button) setInterval_(button.dataset.interval);
+        });
+
+        // ---- lookups ----
+
+        async function loadLookups() {
+            try {
+                const [accountsResponse, categoriesResponse, currenciesResponse] = await Promise.all([
+                    fetch(accountsUrl), fetch(categoriesUrl), fetch(currenciesUrl)
+                ]);
+                if (!accountsResponse.ok || !categoriesResponse.ok || !currenciesResponse.ok) {
+                    throw new Error('Could not load accounts, categories or currencies');
+                }
+                const accounts = await accountsResponse.json();
+                const categories = await categoriesResponse.json();
+                const currencies = await currenciesResponse.json();
+
+                accountsById = {};
+                categoriesById = {};
+                currenciesById = {};
+                accounts.forEach(a => { accountsById[a.id] = a; });
+                categories.forEach(c => { categoriesById[c.id] = c; });
+                currencies.forEach(c => { currenciesById[c.id] = c; });
+
+                const filterAccount = document.getElementById('filterAccount');
+                fillSelect(filterAccount, accounts, 'All Accounts', accountLabel, true);
+
+                ['txAccount', 'xferFrom', 'xferTo'].forEach(id =>
+                    fillSelect(document.getElementById(id), accounts, 'Select account', accountLabel, true));
+                fillSelect(document.getElementById('txCategory'), categories, 'Select category',
+                    c => `${c.name || `Category ${c.id}`} (${isIncome(c) ? 'Income' : 'Expense'})`, true);
+
+                document.getElementById('setupHint').hidden = accounts.length > 0 && categories.length > 0;
+            } catch (error) {
+                console.error('Error loading lookups:', error);
+                alert('Failed to load accounts/categories/currencies: ' + error.message);
+            }
+        }
+
+        // ---- details bar ----
+
+        function renderDetailsBar() {
+            const bar = document.getElementById('detailsBar');
+            bar.replaceChildren();
+            const accountId = document.getElementById('filterAccount').value;
+
+            if (accountId) {
+                const account = accountsById[accountId];
+                if (!account) return;
+                const balance = document.createElement('div');
+                balance.className = 'balance ' + (account.balance >= 0 ? 'positive' : 'negative');
+                balance.textContent = `${Number(account.balance).toFixed(2)} ${currencySymbol(account.currency)}`;
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                meta.textContent = accountLabel(account);
+                bar.append(balance, meta);
+            } else {
+                const totals = {};
+                Object.values(accountsById).forEach(account => {
+                    totals[account.currency] = (totals[account.currency] || 0) + Number(account.balance);
+                });
+                const currencyIds = Object.keys(totals);
+                if (currencyIds.length === 0) {
+                    const meta = document.createElement('div');
+                    meta.className = 'meta';
+                    meta.textContent = 'No accounts yet';
+                    bar.appendChild(meta);
+                    return;
+                }
+                currencyIds.forEach(currencyId => {
+                    const total = totals[currencyId];
+                    const balance = document.createElement('div');
+                    balance.className = 'balance ' + (total >= 0 ? 'positive' : 'negative');
+                    balance.textContent = `${total.toFixed(2)} ${currencySymbol(currencyId)}`;
+                    bar.appendChild(balance);
+                });
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                meta.textContent = 'All accounts';
+                bar.appendChild(meta);
+            }
+        }
+
+        // ---- feed ----
+
+        function buildQuery(accountId, from, to) {
+            const params = new URLSearchParams();
+            if (accountId) params.set('accountId', accountId);
+            if (from) params.set('from', from);
+            if (to) params.set('to', to);
+            const query = params.toString();
+            return query ? `?${query}` : '';
+        }
+
+        async function loadFeed() {
+            renderDetailsBar();
+            const accountId = document.getElementById('filterAccount').value;
+            const { from, to } = computeRange();
+
+            try {
+                const [transactionsResponse, transfersResponse] = await Promise.all([
+                    fetch(transactionApiUrl + buildQuery(accountId, from, to)),
+                    fetch(transferApiUrl + buildQuery(accountId, from, to))
+                ]);
+                if (!transactionsResponse.ok) throw new Error(await errorMessage(transactionsResponse));
+                if (!transfersResponse.ok) throw new Error(await errorMessage(transfersResponse));
+
+                const transactions = await transactionsResponse.json();
+                const transfers = await transfersResponse.json();
+                renderFeed(transactions, transfers);
+            } catch (error) {
+                console.error('Error loading activity:', error);
+                alert('Failed to load activity: ' + error.message);
+            }
+        }
+
+        function toggleExpanded(key) {
+            if (expandedKeys.has(key)) {
+                expandedKeys.delete(key);
+            } else {
+                expandedKeys.add(key);
+            }
+            const item = document.querySelector(`[data-key="${key}"]`);
+            if (item) item.classList.toggle('expanded');
+        }
+
+        function buildTransactionItem(transaction) {
+            const key = `t-${transaction.id}`;
+            const category = categoriesById[transaction.categoryId];
+            const account = accountsById[transaction.accountId];
+            const income = transaction.amount >= 0;
+
+            const item = document.createElement('div');
+            item.className = 'feed-item' + (expandedKeys.has(key) ? ' expanded' : '');
+            item.dataset.key = key;
+
+            const row = document.createElement('div');
+            row.className = 'feed-row';
+            row.addEventListener('click', () => toggleExpanded(key));
+
+            const dateCell = document.createElement('div');
+            dateCell.className = 'feed-date';
+            dateCell.textContent = String(transaction.date).slice(0, 10);
+
+            const dot = document.createElement('span');
+            dot.className = 'feed-kind-dot ' + (income ? 'dot-income' : 'dot-expense');
+
+            const label = document.createElement('div');
+            label.className = 'feed-label';
+            const primary = document.createElement('div');
+            primary.className = 'primary';
+            primary.textContent = categoryLabel(category, transaction.categoryId);
+            label.appendChild(primary);
+            if (!document.getElementById('filterAccount').value) {
+                const secondary = document.createElement('div');
+                secondary.className = 'secondary';
+                secondary.textContent = accountLabel(account);
+                label.appendChild(secondary);
+            }
+
+            const amount = document.createElement('div');
+            amount.className = 'feed-amount ' + (income ? 'income' : 'expense');
+            amount.textContent = (income ? '+' : '') + Number(transaction.amount).toFixed(2)
+                + ' ' + (account ? currencySymbol(account.currency) : '');
+
+            row.append(dateCell, dot, label, amount);
+
+            const details = document.createElement('div');
+            details.className = 'feed-details';
+            const description = document.createElement('div');
+            description.className = 'description';
+            description.textContent = transaction.description || '';
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.textContent = 'Edit';
+            editButton.addEventListener('click', event => {
+                event.stopPropagation();
+                openTransactionDialog(income, transaction);
+            });
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'delete-btn';
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', event => {
+                event.stopPropagation();
+                deleteTransaction(transaction.id);
+            });
+            details.append(description, editButton, deleteButton);
+
+            item.append(row, details);
+            return item;
+        }
+
+        function buildTransferItem(transfer) {
+            const key = `x-${transfer.id}`;
+            const fromAccount = accountsById[transfer.fromAccountId];
+            const toAccount = accountsById[transfer.toAccountId];
+
+            const item = document.createElement('div');
+            item.className = 'feed-item' + (expandedKeys.has(key) ? ' expanded' : '');
+            item.dataset.key = key;
+
+            const row = document.createElement('div');
+            row.className = 'feed-row';
+            row.addEventListener('click', () => toggleExpanded(key));
+
+            const dateCell = document.createElement('div');
+            dateCell.className = 'feed-date';
+            dateCell.textContent = String(transfer.date).slice(0, 10);
+
+            const dot = document.createElement('span');
+            dot.className = 'feed-kind-dot dot-transfer';
+
+            const label = document.createElement('div');
+            label.className = 'feed-label';
+            const primary = document.createElement('div');
+            primary.className = 'primary';
+            primary.textContent = `${accountLabel(fromAccount)} \u2192 ${accountLabel(toAccount)}`;
+            label.appendChild(primary);
+            const secondary = document.createElement('div');
+            secondary.className = 'secondary';
+            secondary.textContent = 'Transfer';
+            label.appendChild(secondary);
+
+            const amount = document.createElement('div');
+            amount.className = 'feed-amount transfer';
+            amount.textContent = Number(transfer.amount).toFixed(2)
+                + ' ' + (fromAccount ? currencySymbol(fromAccount.currency) : '');
+
+            row.append(dateCell, dot, label, amount);
+
+            const details = document.createElement('div');
+            details.className = 'feed-details';
+            const description = document.createElement('div');
+            description.className = 'description';
+            description.textContent = transfer.description || '';
+            const editButton = document.createElement('button');
+            editButton.type = 'button';
+            editButton.textContent = 'Edit';
+            editButton.addEventListener('click', event => {
+                event.stopPropagation();
+                openTransferDialog(transfer);
+            });
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'delete-btn';
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', event => {
+                event.stopPropagation();
+                deleteTransfer(transfer.id);
+            });
+            details.append(description, editButton, deleteButton);
+
+            item.append(row, details);
+            return item;
+        }
+
+        function renderFeed(transactions, transfers) {
+            const list = document.getElementById('feedList');
+            list.replaceChildren();
+
+            const merged = [
+                ...transactions.map(t => ({ kind: 'transaction', date: t.date, id: t.id, data: t })),
+                ...transfers.map(t => ({ kind: 'transfer', date: t.date, id: t.id, data: t }))
+            ].sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+
+            if (merged.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+                empty.textContent = 'Nothing in this period yet.';
+                list.appendChild(empty);
+                return;
+            }
+
+            merged.forEach(entry => {
+                const item = entry.kind === 'transaction'
+                    ? buildTransactionItem(entry.data)
+                    : buildTransferItem(entry.data);
+                list.appendChild(item);
+            });
+        }
+
+        // ---- transaction dialog (add expense / add income / edit) ----
+
+        function openTransactionDialog(income, existing) {
+            const dialog = document.getElementById('transactionDialog');
+            document.getElementById('transactionDialogTitle').textContent =
+                existing ? 'Edit ' + (income ? 'Income' : 'Expense') : 'Add ' + (income ? 'Income' : 'Expense');
+            document.getElementById('txId').value = existing ? existing.id : '';
+            document.getElementById('txIsIncome').value = String(income);
+
+            const accountSelect = document.getElementById('txAccount');
+            const filterAccountId = document.getElementById('filterAccount').value;
+            accountSelect.value = existing ? String(existing.accountId) : (filterAccountId || '');
+
+            const categorySelect = document.getElementById('txCategory');
+            const matchingCategories = Object.values(categoriesById).filter(c => isIncome(c) === income);
+            fillSelect(categorySelect, matchingCategories, 'Select category',
+                c => c.name || `Category ${c.id}`, true);
+            categorySelect.value = existing ? String(existing.categoryId) : '';
+
+            document.getElementById('txAmount').value = existing ? Math.abs(existing.amount) : '';
+            document.getElementById('txDate').value = existing ? String(existing.date).slice(0, 10) : today();
+            document.getElementById('txDescription').value = existing ? (existing.description || '') : '';
+
+            dialog.showModal();
+        }
+
+        async function submitTransaction(event) {
+            event.preventDefault();
+            const id = document.getElementById('txId').value;
+            const income = document.getElementById('txIsIncome').value === 'true';
+            const accountId = document.getElementById('txAccount').value;
+            const categoryId = document.getElementById('txCategory').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+
+            if (!accountId || !categoryId || !(amount > 0)) {
+                alert('Account, category and an amount greater than zero are required!');
+                return;
+            }
+
+            const transaction = {
+                id: id ? Number(id) : undefined,
+                accountId: parseInt(accountId),
+                categoryId: parseInt(categoryId),
+                amount: signedAmount(amount, categoryId),
+                date: document.getElementById('txDate').value,
+                description: document.getElementById('txDescription').value.trim()
+            };
+
+            try {
+                const response = await fetch(transactionApiUrl, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transaction)
+                });
+                if (!response.ok) throw new Error(await errorMessage(response));
+                document.getElementById('transactionDialog').close();
+                await loadLookups();
+                await loadFeed();
+            } catch (error) {
+                console.error('Error saving transaction:', error);
+                alert('Failed to save: ' + error.message);
+            }
+        }
+
+        async function deleteTransaction(id) {
+            if (!confirm('Delete this transaction?')) return;
+            try {
+                const response = await fetch(`${transactionApiUrl}/${id}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error(await errorMessage(response));
+                await loadLookups();
+                await loadFeed();
+            } catch (error) {
+                console.error('Error deleting transaction:', error);
+                alert('Failed to delete: ' + error.message);
+            }
+        }
+
+        // ---- transfer dialog (add / edit) ----
+
+        function openTransferDialog(existing) {
+            const dialog = document.getElementById('transferDialog');
+            document.getElementById('transferDialogTitle').textContent = existing ? 'Edit Transfer' : 'Add Transfer';
+            document.getElementById('xferId').value = existing ? existing.id : '';
+
+            const filterAccountId = document.getElementById('filterAccount').value;
+            document.getElementById('xferFrom').value = existing ? String(existing.fromAccountId) : (filterAccountId || '');
+            document.getElementById('xferTo').value = existing ? String(existing.toAccountId) : '';
+            document.getElementById('xferAmount').value = existing ? existing.amount : '';
+            document.getElementById('xferDate').value = existing ? String(existing.date).slice(0, 10) : today();
+            document.getElementById('xferDescription').value = existing ? (existing.description || '') : '';
+
+            dialog.showModal();
+        }
+
+        async function submitTransfer(event) {
+            event.preventDefault();
+            const id = document.getElementById('xferId').value;
+            const fromAccountId = document.getElementById('xferFrom').value;
+            const toAccountId = document.getElementById('xferTo').value;
+            const amount = parseFloat(document.getElementById('xferAmount').value);
+
+            if (!fromAccountId || !toAccountId || !(amount > 0)) {
+                alert('From account, to account and an amount greater than zero are required!');
+                return;
+            }
+            if (fromAccountId === toAccountId) {
+                alert('From and To must be different accounts.');
+                return;
+            }
+
+            const transfer = {
+                id: id ? Number(id) : undefined,
+                fromAccountId: parseInt(fromAccountId),
+                toAccountId: parseInt(toAccountId),
+                amount: amount,
+                date: document.getElementById('xferDate').value,
+                description: document.getElementById('xferDescription').value.trim()
+            };
+
+            try {
+                const response = await fetch(transferApiUrl, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transfer)
+                });
+                if (!response.ok) throw new Error(await errorMessage(response));
+                document.getElementById('transferDialog').close();
+                await loadLookups();
+                await loadFeed();
+            } catch (error) {
+                console.error('Error saving transfer:', error);
+                alert('Failed to save: ' + error.message);
+            }
+        }
+
+        async function deleteTransfer(id) {
+            if (!confirm('Delete this transfer?')) return;
+            try {
+                const response = await fetch(`${transferApiUrl}/${id}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error(await errorMessage(response));
+                await loadLookups();
+                await loadFeed();
+            } catch (error) {
+                console.error('Error deleting transfer:', error);
+                alert('Failed to delete: ' + error.message);
+            }
+        }
+
+        // ---- wiring ----
+
+        document.getElementById('filterAccount').addEventListener('change', loadFeed);
+        document.getElementById('transactionForm').addEventListener('submit', submitTransaction);
+        document.getElementById('transferForm').addEventListener('submit', submitTransfer);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadLookups();
+            await loadFeed();
+        });
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 (function () {
     const links = [
         ['index.html', 'Home'],
+        ['activity.html', 'Activity'],
         ['accounts.html', 'Accounts'],
         ['transactions.html', 'Transactions'],
         ['transfers.html', 'Transfers'],
