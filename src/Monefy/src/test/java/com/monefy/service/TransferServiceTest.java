@@ -7,7 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.monefy.entity.Account;
 import com.monefy.entity.Transfer;
@@ -142,5 +146,29 @@ class TransferServiceTest {
                 () -> transferService.saveTransfer(transfer(null, 1, 2, 30f)));
 
         verify(transferRepository, never()).save(any(Transfer.class));
+    }
+
+    @Test
+    void filteringPassesAccountAndDateRangeToTheRepository() {
+        when(transferRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+        transferService.getTransfers(3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31));
+
+        verify(transferRepository).findAll(any(Specification.class), any(Sort.class));
+    }
+
+    @Test
+    void filteringWithNoArgumentsStillCallsTheRepository() {
+        when(transferRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+        transferService.getTransfers(null, null, null);
+
+        verify(transferRepository).findAll(any(Specification.class), any(Sort.class));
+    }
+
+    @Test
+    void fromAfterToIsRejected() {
+        assertThrows(BusinessRuleException.class,
+                () -> transferService.getTransfers(null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 1)));
     }
 }

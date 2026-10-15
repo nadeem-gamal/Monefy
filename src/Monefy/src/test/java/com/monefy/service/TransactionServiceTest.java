@@ -8,7 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.monefy.entity.Account;
 import com.monefy.entity.Transaction;
@@ -174,5 +178,29 @@ class TransactionServiceTest {
         when(transactionRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> transactionService.deleteTransaction(99L));
+    }
+
+    @Test
+    void filteringPassesAccountAndDateRangeToTheRepository() {
+        when(transactionRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+        transactionService.getTransactions(3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31));
+
+        verify(transactionRepository).findAll(any(Specification.class), any(Sort.class));
+    }
+
+    @Test
+    void filteringWithNoArgumentsStillCallsTheRepository() {
+        when(transactionRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+        transactionService.getTransactions(null, null, null);
+
+        verify(transactionRepository).findAll(any(Specification.class), any(Sort.class));
+    }
+
+    @Test
+    void fromAfterToIsRejected() {
+        assertThrows(BusinessRuleException.class,
+                () -> transactionService.getTransactions(null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 1)));
     }
 }

@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -42,7 +43,8 @@ class TransactionControllerTest {
         Transaction transaction1 = new Transaction(1L, new Date(System.currentTimeMillis()), 1, 1, 100, "Description1");
         Transaction transaction2 = new Transaction(2L, new Date(System.currentTimeMillis()), 2, 2, 200, "Description2");
 
-        when(transactionService.getAllTransactions()).thenReturn(Arrays.asList(transaction1, transaction2));
+        when(transactionService.getTransactions(isNull(), isNull(), isNull()))
+                .thenReturn(Arrays.asList(transaction1, transaction2));
 
         mockMvc.perform(get("/transaction/getAll"))
                 .andExpect(status().isOk())

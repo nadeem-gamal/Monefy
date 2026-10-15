@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -42,7 +43,8 @@ class TransferControllerTest {
         Transfer transfer1 = new Transfer(1L, new Date(System.currentTimeMillis()), 1, 2, 100, "Description1");
         Transfer transfer2 = new Transfer(2L, new Date(System.currentTimeMillis()), 2, 3, 200, "Description2");
 
-        when(transferService.getAllTransfers()).thenReturn(Arrays.asList(transfer1, transfer2));
+        when(transferService.getTransfers(isNull(), isNull(), isNull()))
+                .thenReturn(Arrays.asList(transfer1, transfer2));
 
         mockMvc.perform(get("/transfers"))
                 .andExpect(status().isOk())

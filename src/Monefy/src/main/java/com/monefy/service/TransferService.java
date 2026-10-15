@@ -1,10 +1,13 @@
 package com.monefy.service;
 
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,37 @@ public class TransferService {
 
     public List<Transfer> getAllTransfers() {
         return transferRepository.findAll();
+    }
+
+    /**
+     * Any of the three filters can be left out (null). accountId matches either
+     * side of the transfer; from/to are inclusive, and the list comes back newest first.
+     * Each filter is added to the query as a separate predicate only when present,
+     * rather than written into one "is null or ..." SQL expression — that pattern
+     * tripped up Postgres's parameter-type inference.
+     */
+    public List<Transfer> getTransfers(Integer accountId, LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new BusinessRuleException("'from' date must not be after 'to' date");
+        }
+
+        Specification<Transfer> spec = Specification.where(null);
+        if (accountId != null) {
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.equal(root.get("fromAccountId"), accountId),
+                    cb.equal(root.get("toAccountId"), accountId)));
+        }
+        if (from != null) {
+            Date fromDate = Date.valueOf(from);
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("date"), fromDate));
+        }
+        if (to != null) {
+            Date toDate = Date.valueOf(to);
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("date"), toDate));
+        }
+
+        Sort sort = Sort.by(Sort.Direction.DESC, "date").and(Sort.by(Sort.Direction.DESC, "id"));
+        return transferRepository.findAll(spec, sort);
     }
 
     public Optional<Transfer> getTransferById(Long id) {
