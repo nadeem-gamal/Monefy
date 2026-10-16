@@ -178,6 +178,15 @@
         .feed-amount.income { color: #2e7d32; }
         .feed-amount.expense { color: #c62828; }
         .feed-amount.transfer { color: #1565c0; }
+        .feed-amount-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        .feed-amount-stack .feed-amount {
+            font-size: 13px;
+        }
         .feed-details {
             display: none;
             padding: 0 4px 14px 101px;
@@ -721,7 +730,6 @@
             const key = `cat-${categoryId}`;
             const category = categoriesById[categoryId];
             const income = isIncome(category);
-            const total = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
             const showAccount = !document.getElementById('filterAccount').value;
 
             const item = document.createElement('div');
@@ -746,16 +754,34 @@
             primary.appendChild(count);
             label.appendChild(primary);
 
-            const currencyIds = new Set(transactions.map(t => {
+            const currencyTotals = {};
+            transactions.forEach(t => {
                 const account = accountsById[t.accountId];
-                return account ? account.currency : null;
-            }));
-            const commonCurrency = currencyIds.size === 1 ? [...currencyIds][0] : null;
+                const currencyId = account ? account.currency : 'unknown';
+                currencyTotals[currencyId] = (currencyTotals[currencyId] || 0) + Number(t.amount);
+            });
+            const currencyIds = Object.keys(currencyTotals);
 
-            const amount = document.createElement('div');
-            amount.className = 'feed-amount ' + (income ? 'income' : 'expense');
-            amount.textContent = (income ? '+' : '') + total.toFixed(2)
-                + (commonCurrency ? ' ' + currencySymbol(commonCurrency) : '');
+            let amount;
+            if (currencyIds.length <= 1) {
+                const total = currencyIds.length === 1 ? currencyTotals[currencyIds[0]] : 0;
+                amount = document.createElement('div');
+                amount.className = 'feed-amount ' + (income ? 'income' : 'expense');
+                amount.textContent = (income ? '+' : '') + total.toFixed(2)
+                    + (currencyIds.length === 1 ? ' ' + currencySymbol(currencyIds[0]) : '');
+            } else {
+                // transactions in this category span more than one currency — summing them
+                // directly would be meaningless, so show one total per currency instead
+                amount = document.createElement('div');
+                amount.className = 'feed-amount-stack';
+                currencyIds.forEach(currencyId => {
+                    const line = document.createElement('div');
+                    line.className = 'feed-amount ' + (income ? 'income' : 'expense');
+                    line.textContent = (income ? '+' : '') + currencyTotals[currencyId].toFixed(2)
+                        + ' ' + currencySymbol(currencyId);
+                    amount.appendChild(line);
+                });
+            }
 
             row.append(dot, label, amount);
 
